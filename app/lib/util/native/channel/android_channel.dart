@@ -83,6 +83,16 @@ Future<void> flushPendingShareIntentsAndroid() async {
   }
 }
 
+/// Devuelve true una sola vez si la app se abrió desde el widget y debe mostrar el menú de agregar archivos.
+Future<bool> consumeOpenSendMenuAndroid() async {
+  try {
+    return await _methodChannel.invokeMethod<bool>('consumeOpenSendMenu') ?? false;
+  } catch (e) {
+    _logger.warning('Could not check widget launch', e);
+    return false;
+  }
+}
+
 Future<void> openGallery() async {
   _logger.info('Opening gallery');
   await _methodChannel.invokeMethod('openGallery');

@@ -13,6 +13,10 @@ import 'package:localsend_app/provider/selection/selected_sending_files_provider
 import 'package:localsend_app/util/native/cross_file_converters.dart';
 import 'package:localsend_app/widget/responsive_builder.dart';
 import 'package:refena_flutter/refena_flutter.dart';
+import 'dart:async';
+import 'package:localsend_app/util/native/channel/android_channel.dart';
+import 'package:localsend_app/util/native/platform_check.dart';
+import 'package:localsend_app/widget/dialogs/add_file_dialog.dart';
 
 enum HomeTab {
   receive(Icons.wifi),
@@ -53,17 +57,46 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with Refena {
+class _HomePageState extends State<HomePage> with Refena, WidgetsBindingObserver {
+  bool _widgetCheckReady = false;
   bool _dragAndDropIndicator = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     ensureRef((ref) async {
       ref.redux(homePageControllerProvider).dispatch(ChangeTabAction(widget.initialTab));
       await postInit(context, ref, widget.appStart);
+      _widgetCheckReady = true;
+      await _openSendMenuIfLaunchedFromWidget();
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _widgetCheckReady) {
+      unawaited(_openSendMenuIfLaunchedFromWidget());
+    }
+  }
+
+  Future<void> _openSendMenuIfLaunchedFromWidget() async {
+    if (!checkPlatform([TargetPlatform.android])) {
+      return;
+    }
+    final shouldOpen = await consumeOpenSendMenuAndroid();
+    if (!shouldOpen || !mounted) {
+      return;
+    }
+    ref.redux(homePageControllerProvider).dispatch(ChangeTabAction(HomeTab.send));
+    await AddFileDialog.open(context: context, options: pickerOptions);
   }
 
   @override

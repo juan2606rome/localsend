@@ -21,7 +21,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
-
+import android.os.Bundle
 
 private const val CHANNEL = "org.localsend.localsend_app/localsend"
 private const val REQUEST_CODE_PICK_DIRECTORY = 1
@@ -44,8 +44,18 @@ class MainActivity : FlutterActivity() {
     /// replay them through the regular plugin path.
     private val pendingShareIntents = mutableListOf<Intent>()
     private var shareIntentReady = false
+    private var pendingOpenSendMenu = false
 
+    private fun markSendMenuRequest(i: Intent?) {
+        if (i?.action == ACTION_OPEN_SEND_MENU) pendingOpenSendMenu = true
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        markSendMenuRequest(intent)
+        super.onCreate(savedInstanceState)
+    }
     override fun onNewIntent(intent: Intent) {
+        markSendMenuRequest(intent)
         if (!shareIntentReady && (intent.action == Intent.ACTION_SEND || intent.action == Intent.ACTION_SEND_MULTIPLE)) {
             pendingShareIntents.add(intent)
             return
@@ -81,6 +91,12 @@ class MainActivity : FlutterActivity() {
             CHANNEL
         ).setMethodCallHandler { call, result ->
             when (call.method) {
+                "consumeOpenSendMenu" -> {
+                    val pending = pendingOpenSendMenu
+                    pendingOpenSendMenu = false
+                    result.success(pending)
+                }
+
                 "pickDirectory" -> {
                     pendingResult = result
                     openDirectoryPicker(onlyPath = false)

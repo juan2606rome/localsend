@@ -1,0 +1,371 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="frases">
+        <item>Hoy es un buen día para avanzar un poco más.</item>
+        <item>Lo difícil de hoy es lo fácil de mañana.</item>
+        <item>Un paso pequeño sigue siendo un paso.</item>
+        <item>Tu esfuerzo de hoy construye tu futuro.</item>
+        <item>No tienes que ser perfecto, solo constante.</item>
+        <item>Cada error es una lección disfrazada.</item>
+        <item>Empieza donde estás, con lo que tienes.</item>
+        <item>La disciplina vence a la motivación.</item>
+        <item>Hazlo simple, hazlo ahora.</item>
+        <item>Tu mejor versión se construye día a día.</item>
+        <item>Respira hondo: vas mejor de lo que crees.</item>
+        <item>Lo que hoy cuesta, mañana se agradece.</item>
+        <item>Hoy cuenta, aunque nadie lo vea.</item>
+        <item>Crece en silencio, brilla con resultados.</item>
+        <item>Un proyecto terminado vale más que mil ideas.</item>
+        <item>Las grandes obras empiezan con un borrador feo.</item>
+        <item>Si tropiezas, que sea hacia adelante.</item>
+        <item>Tu futuro se está escribiendo en este momento.</item>
+        <item>No esperes ganas, crea el hábito.</item>
+        <item>Poco a poco se llega lejos.</item>
+        <item>Confía en el proceso, incluso cuando es lento.</item>
+        <item>Hoy puedes hacer algo que tu yo de mañana agradezca.</item>
+        <item>Los límites casi siempre están en la cabeza.</item>
+        <item>Quien insiste, avanza.</item>
+        <item>Lo importante no es la velocidad, es no parar.</item>
+        <item>Cada día es una hoja en blanco.</item>
+        <item>Haz hoy lo que otros no quieren, vive mañana como otros no pueden.</item>
+        <item>La constancia le gana al talento que no se entrena.</item>
+        <item>Un día más de práctica, un día menos de duda.</item>
+        <item>Sueña en grande, empieza en pequeño.</item>
+        <item>Eres más capaz de lo que piensas.</item>
+        <item>Tu ritmo también es válido.</item>
+        <item>Cuando dudes, da el primer paso y mira.</item>
+        <item>No compares tu capítulo uno con el capítulo diez de otros.</item>
+        <item>El progreso casi nunca se siente, pero se nota.</item>
+        <item>Hoy es un gran día para intentarlo de nuevo.</item>
+        <item>Los errores confirman que estás intentando.</item>
+        <item>Lo que sembraste hoy lo cosecharás pronto.</item>
+        <item>Termina lo que empezaste, el mundo necesita tu obra.</item>
+        <item>Sé paciente: las cosas buenas toman tiempo.</item>
+        <item>Cada pequeño avance suma.</item>
+        <item>Si es importante, encontrarás la manera.</item>
+        <item>Hoy tu única meta: mejorar un uno por ciento.</item>
+        <item>Ponle ganas al día y el día te responde.</item>
+        <item>Nada cambia si nada cambias.</item>
+        <item>Lo mejor está por venir, sigue caminando.</item>
+        <item>Cree en ti aunque el camino sea largo.</item>
+        <item>La motivación te arranca, el hábito te lleva.</item>
+        <item>Haz lo mejor que puedas con lo que tienes hoy.</item>
+        <item>Los sueños también necesitan horarios.</item>
+        <item>Un buen día empieza con una buena decisión.</item>
+        <item>Tu actitud de hoy decide tu semana.</item>
+        <item>Lo que te asusta suele ser lo que más te hace crecer.</item>
+        <item>No te rindas: el siguiente intento puede ser el bueno.</item>
+        <item>Avanza aunque sea despacio, pero avanza.</item>
+        <item>Hoy toca dar lo mejor, mañana también.</item>
+        <item>La suerte se encuentra trabajando.</item>
+        <item>Quien no arriesga, no descubre de qué es capaz.</item>
+        <item>Cada mañana trae una nueva oportunidad.</item>
+        <item>Haz que hoy cuente.</item>
+        <item>Si lo puedes imaginar, lo puedes construir.</item>
+        <item>Una idea sin acción es solo un deseo.</item>
+        <item>Sé la persona que tu futuro necesita.</item>
+        <item>Aprender nunca es tiempo perdido.</item>
+        <item>Estudiar hoy es ganar libertad mañana.</item>
+        <item>Un código que compila es una pequeña victoria.</item>
+        <item>Todo error de programación es una pista, no una condena.</item>
+        <item>Primero hazlo funcionar, luego hazlo bonito.</item>
+        <item>Un bug resuelto es una lección aprendida.</item>
+        <item>Los grandes sistemas empiezan con un hola mundo.</item>
+        <item>Divide el problema y vencerás.</item>
+        <item>Si no entiendes algo, explícalo en voz alta.</item>
+        <item>Documenta hoy, agradece mañana.</item>
+        <item>Pregunta sin miedo: así aprenden los ingenieros.</item>
+        <item>La mejor depuración empieza con un respiro.</item>
+        <item>Cada proyecto grande fue una vez un archivo vacío.</item>
+        <item>Hacer commits pequeños es hacer progresos seguros.</item>
+        <item>Lee el error completo, casi siempre te lo dice todo.</item>
+        <item>Un buen ingeniero resuelve problemas, no solo escribe código.</item>
+        <item>Aprende algo nuevo cada día, aunque sea pequeño.</item>
+        <item>Prueba, falla, ajusta, repite.</item>
+        <item>La práctica convierte lo difícil en rutina.</item>
+        <item>Hoy repasa un concepto, mañana construye con él.</item>
+        <item>Entender es mejor que memorizar.</item>
+        <item>Un buen plan evita muchas horas de caos.</item>
+        <item>Guarda tu trabajo, respira y sigue.</item>
+        <item>Un reto resuelto abre la puerta al siguiente.</item>
+        <item>Programar es pensar con claridad.</item>
+        <item>La curiosidad es el mejor lenguaje de programación.</item>
+        <item>Si funciona, aprende por qué funciona.</item>
+        <item>Cada línea que escribes te hace mejor.</item>
+        <item>Mide dos veces, corta una.</item>
+        <item>Los números cuentan historias, aprende a leerlas.</item>
+        <item>Ingeniería es convertir ideas en soluciones reales.</item>
+        <item>Resolver problemas es tu superpoder.</item>
+        <item>Quien comparte lo que sabe, aprende dos veces.</item>
+        <item>El mejor momento para repasar es antes de olvidar.</item>
+        <item>Tómate el tiempo de entender las bases.</item>
+        <item>Una buena pregunta vale más que una respuesta rápida.</item>
+        <item>Hoy te toca construir algo que antes no existía.</item>
+        <item>Los prototipos feos enseñan más que los planes perfectos.</item>
+        <item>Cada examen es una oportunidad de demostrar lo que aprendiste.</item>
+        <item>Estudia con calma, descansa con ganas.</item>
+        <item>Un descanso a tiempo también es productivo.</item>
+        <item>Duerme bien: tu cerebro trabaja mientras sueñas.</item>
+        <item>Toma agua, estírate y vuelve con energía.</item>
+        <item>Tu cuerpo también necesita cariño hoy.</item>
+        <item>Camina un rato, las ideas llegan caminando.</item>
+        <item>Come algo rico, que hoy lo mereces.</item>
+        <item>Descansar no es rendirse, es recargar.</item>
+        <item>Date permiso de hacer una pausa.</item>
+        <item>Tu salud mental importa tanto como tus metas.</item>
+        <item>Sonríe, aunque sea un poquito.</item>
+        <item>Una canción favorita puede arreglar media mañana.</item>
+        <item>Hoy elige la calma por encima de la prisa.</item>
+        <item>No todo tiene que resolverse hoy.</item>
+        <item>Un café, un respiro y a seguir.</item>
+        <item>Cuida tu energía, es tu mejor recurso.</item>
+        <item>Hoy te mereces ser amable contigo.</item>
+        <item>Está bien pedir ayuda cuando la necesites.</item>
+        <item>Disfruta el camino, no solo la meta.</item>
+        <item>Agradece algo pequeño antes de dormir.</item>
+        <item>Hoy es un buen día para sentirte orgulloso.</item>
+        <item>La calma también es una forma de avanzar.</item>
+        <item>Respira. Lo estás haciendo mejor de lo que crees.</item>
+        <item>Mira el cielo un momento, el mundo es grande.</item>
+        <item>Cada día tiene al menos una cosa buena, búscala.</item>
+        <item>Rodéate de quien suma y se alegra por ti.</item>
+        <item>Una conversación sincera vale oro.</item>
+        <item>Llama a alguien que quieras, un mensaje basta.</item>
+        <item>Ser amable no cuesta nada y cambia días enteros.</item>
+        <item>Abraza a quien quieres mientras puedas.</item>
+        <item>Hoy escucha más de lo que hablas.</item>
+        <item>Agradece a quien te ayudó, aunque sea tarde.</item>
+        <item>Comparte tu alegría, se multiplica.</item>
+        <item>Un gesto amable puede ser el mejor momento del día de alguien.</item>
+        <item>La familia y los amigos son tu mejor red.</item>
+        <item>Sé como la persona que necesitabas cuando eras más joven.</item>
+        <item>La gratitud convierte lo que tienes en suficiente.</item>
+        <item>Hoy enfócate en lo que sí puedes controlar.</item>
+        <item>Cada día es un regalo, ábrelo con ganas.</item>
+        <item>Lo simple suele ser lo más bonito.</item>
+        <item>La felicidad se esconde en los detalles pequeños.</item>
+        <item>Aprende a disfrutar de los lunes.</item>
+        <item>Hoy ríete de algo, aunque sea de ti.</item>
+        <item>Haz algo que te haga sentir vivo.</item>
+        <item>La vida es corta: haz el viaje, prueba el postre.</item>
+        <item>Baila aunque nadie te mire.</item>
+        <item>Sé curioso como un niño.</item>
+        <item>El humor también es una forma de resistencia.</item>
+        <item>Si el plan A falla, el abecedario tiene más letras.</item>
+        <item>Hoy es un buen día para no complicarse.</item>
+        <item>Si te sientes perdido, pregunta el camino o abre el mapa.</item>
+        <item>Un error es solo un resultado que no esperabas.</item>
+        <item>Primero el café, luego el mundo.</item>
+        <item>Lo bueno de empezar de cero es que ya no hay nada que arreglar.</item>
+        <item>Si la vida te da limones, que sea con tequila y sal.</item>
+        <item>No es procrastinar, es planificar con anticipación.</item>
+        <item>Todo mejora después de una siesta.</item>
+        <item>Haz hoy lo que puedas, y para lo demás existe mañana.</item>
+        <item>Hoy mi plan es sobrevivir con estilo.</item>
+        <item>Tu mejor idea siempre aparece en la ducha.</item>
+        <item>Si hoy no sale perfecto, queda como borrador.</item>
+        <item>Un meme a tiempo salva el día.</item>
+        <item>La lógica dice que sí, el cansancio dice que mañana.</item>
+        <item>Cada vez que reinicias, algo se arregla.</item>
+        <item>Apagar y volver a prender: la solución universal.</item>
+        <item>Hoy el wifi está contigo.</item>
+        <item>Estoy en modo ahorro de energía, pero sigo funcionando.</item>
+        <item>Todo sale bien si no miras cuánto falta.</item>
+        <item>Un día sin sonreír es un día perdido.</item>
+        <item>Los lunes se arreglan con música.</item>
+        <item>La batería baja, la actitud no.</item>
+        <item>Hoy la prioridad es no perder el hilo.</item>
+        <item>No me falta talento, me falta que sea viernes.</item>
+        <item>El domingo es el lunes de las ganas.</item>
+        <item>Buen día para ser un poco más valiente.</item>
+        <item>Elige hoy una meta pequeña y cúmplela.</item>
+        <item>Anota tus ideas, las buenas se escapan rápido.</item>
+        <item>Cuando no sepas qué hacer, empieza por ordenar.</item>
+        <item>Ordenar tu espacio ordena tu mente.</item>
+        <item>Haz una lista y tacha con orgullo.</item>
+        <item>Planea tu día en cinco minutos y ahorra horas.</item>
+        <item>Una cosa a la vez, y bien hecha.</item>
+        <item>Prioriza lo importante, no solo lo urgente.</item>
+        <item>El tiempo es tu mayor recurso, úsalo con cariño.</item>
+        <item>Apaga las notificaciones, enciende tus metas.</item>
+        <item>Empieza por lo más difícil y lo demás será fácil.</item>
+        <item>Ahorra hoy un poquito, tu futuro te lo agradecerá.</item>
+        <item>Revisa tus metas del año y celebra cada avance.</item>
+        <item>Un presupuesto sencillo evita muchos dolores de cabeza.</item>
+        <item>Pequeños ahorros, grandes sueños.</item>
+        <item>Gasta con cabeza, disfruta con el corazón.</item>
+        <item>Invierte en ti, nadie te lo quita.</item>
+        <item>Aprende a decir que no sin culpa.</item>
+        <item>La organización es el primer paso del éxito.</item>
+        <item>Un hábito de cinco minutos puede cambiarlo todo.</item>
+        <item>Hoy lee unas páginas, tu mente lo agradecerá.</item>
+        <item>La lectura es un viaje sin salir de casa.</item>
+        <item>Escribe tus ideas, aunque sean locas.</item>
+        <item>Dibuja, crea, inventa: lo que sea que te mueva.</item>
+        <item>Aprende una palabra nueva hoy.</item>
+        <item>Un idioma nuevo es una ventana más.</item>
+        <item>Cocina algo distinto, atrévete a probar.</item>
+        <item>Prueba un camino diferente al trabajo o la universidad.</item>
+        <item>Haz una pregunta que nunca te hayas hecho.</item>
+        <item>La creatividad crece cuando se usa.</item>
+        <item>Observa más, juzga menos.</item>
+        <item>La curiosidad es el motor del aprendizaje.</item>
+        <item>Hoy es buen día para aprender algo inútil pero divertido.</item>
+        <item>Un libro, una manta y un té: plan perfecto.</item>
+        <item>La música cambia el ánimo en tres minutos.</item>
+        <item>Hoy escucha esa canción que te hace sentir bien.</item>
+        <item>Mira una película que te haga pensar.</item>
+        <item>Sal a caminar sin destino.</item>
+        <item>Mira el atardecer, es gratis y siempre vale la pena.</item>
+        <item>El mar, la montaña o el parque: cualquier lugar verde sana.</item>
+        <item>La naturaleza no se apura y todo lo logra.</item>
+        <item>Un árbol crece lento pero da sombra para siempre.</item>
+        <item>Cuidar el planeta es cuidar tu casa.</item>
+        <item>Un pequeño gesto verde hoy es un gran cambio mañana.</item>
+        <item>Siembra algo, aunque sea una semilla en una maceta.</item>
+        <item>Agradece la lluvia: todo lo bonito necesita agua.</item>
+        <item>Después de la tormenta, siempre sale el sol.</item>
+        <item>Los días grises también pasan.</item>
+        <item>Hasta la noche más oscura termina con un amanecer.</item>
+        <item>Hoy el cielo está limpio, que tu mente también.</item>
+        <item>El café sabe mejor cuando lo disfrutas sin prisa.</item>
+        <item>Un buen desayuno es media victoria.</item>
+        <item>Las mejores ideas llegan cuando te relajas.</item>
+        <item>Camina tranquilo, vas a llegar.</item>
+        <item>Respira por la nariz, suelta por la boca, sigue.</item>
+        <item>Cierra los ojos diez segundos y vuelve renovado.</item>
+        <item>Estírate, que el cuerpo también agradece.</item>
+        <item>Un vaso de agua ahora mismo no te vendría mal.</item>
+        <item>Date una ducha larga y deja ir el estrés.</item>
+        <item>Mereces un día tranquilo.</item>
+        <item>Cuando todo se complique, simplifica.</item>
+        <item>No cargues hoy el peso de mañana.</item>
+        <item>Lo que no puedes cambiar, aprende a soltarlo.</item>
+        <item>Tu paz vale más que tener la razón.</item>
+        <item>Elige batallas pequeñas y victorias grandes.</item>
+        <item>No necesitas la aprobación de todos.</item>
+        <item>Sé fiel a ti mismo, aunque cueste.</item>
+        <item>Tu valor no depende de tu productividad.</item>
+        <item>Eres suficiente tal como eres hoy.</item>
+        <item>Cada persona tiene su propio ritmo, respeta el tuyo.</item>
+        <item>Aprende de los demás, pero no copies su camino.</item>
+        <item>Tu historia aún se está escribiendo.</item>
+        <item>El mejor momento para empezar fue ayer; el segundo mejor, hoy.</item>
+        <item>Un sueño con fecha se vuelve plan.</item>
+        <item>Arriesga un poco: lo peor es quedarte con las ganas.</item>
+        <item>Lo imposible solo tarda un poco más.</item>
+        <item>Ten fe en tus planes, aunque aún no se vean.</item>
+        <item>La paciencia es la hermana de la constancia.</item>
+        <item>Sigue sembrando, la cosecha llega.</item>
+        <item>Cada final es el inicio de otra cosa.</item>
+        <item>Lo que hoy parece un obstáculo mañana será una anécdota.</item>
+        <item>Un tropiezo no borra tus avances.</item>
+        <item>Aprende a celebrar tus pequeños logros.</item>
+        <item>Cada logro de hoy empezó con una decisión de ayer.</item>
+        <item>Mira cuánto has avanzado, no solo lo que te falta.</item>
+        <item>No hay atajos para lo que vale la pena.</item>
+        <item>La excelencia es un hábito, no un momento.</item>
+        <item>Hacer algo con cariño siempre se nota.</item>
+        <item>Pon amor en lo que haces y saldrá bien.</item>
+        <item>Trabaja en silencio, deja que el éxito haga ruido.</item>
+        <item>Los grandes cambios empiezan en lo cotidiano.</item>
+        <item>Haz algo hoy que tu yo del futuro admire.</item>
+        <item>El mejor momento para ser valiente es ahora.</item>
+        <item>Cree en tus ideas, alguien las necesita.</item>
+        <item>Si te cuesta, es porque estás creciendo.</item>
+        <item>Lo que haces hoy puede inspirar a alguien sin que lo sepas.</item>
+        <item>Atrévete a ser principiante otra vez.</item>
+        <item>Ser constante es mejor que ser intenso por un día.</item>
+        <item>Haz equipo: juntos se llega más lejos.</item>
+        <item>Aprende de los que saben más y enseña a los que saben menos.</item>
+        <item>Un buen líder escucha antes de hablar.</item>
+        <item>Pide perdón si hace falta, perdona si puedes.</item>
+        <item>No esperes la oportunidad perfecta, crea una buena.</item>
+        <item>Las oportunidades llegan a quienes están preparados.</item>
+        <item>Prepara hoy lo que quieres lograr mañana.</item>
+        <item>Lo que practicas con constancia, lo dominas.</item>
+        <item>Un maestro fue alguna vez un principiante insistente.</item>
+        <item>La mejor inversión es aprender.</item>
+        <item>Tu curiosidad te llevará a lugares increíbles.</item>
+        <item>Un buen proyecto necesita tiempo, café y paciencia.</item>
+        <item>Los mejores inventos nacieron de un error.</item>
+        <item>La innovación empieza con la pregunta: y si probamos otra forma.</item>
+        <item>Pensar distinto es una ventaja.</item>
+        <item>Hoy mira un problema desde otro ángulo.</item>
+        <item>Cada reto es un rompecabezas esperando tu solución.</item>
+        <item>Tu cerebro es un músculo: ejercítalo.</item>
+        <item>Mejora tu forma de pensar y todo lo demás mejora.</item>
+        <item>Aprender a aprender es la mejor habilidad.</item>
+        <item>Haz de cada tarea una pequeña victoria.</item>
+        <item>Si hoy te toca difícil, mañana te toca más fuerte.</item>
+        <item>Agradece los desafíos, te hacen más sabio.</item>
+        <item>Hay fuerza en ti que aún no conoces.</item>
+        <item>La valentía no es no tener miedo, es avanzar con él.</item>
+        <item>Hoy es un buen día para perdonarte algo.</item>
+        <item>Habla bonito de ti, nadie te escucha más que tú.</item>
+        <item>Eres la persona más importante de tu propia vida.</item>
+        <item>Merecer cosas buenas no requiere permiso.</item>
+        <item>Hoy elige ser tu propio mejor amigo.</item>
+        <item>Mírate al espejo y di: voy a lograrlo.</item>
+        <item>El respeto empieza por ti.</item>
+        <item>Tu energía atrae a los que van en tu misma frecuencia.</item>
+        <item>Lo bueno se nota sin hacer ruido.</item>
+        <item>Haz lo correcto aunque nadie te vea.</item>
+        <item>La honestidad te ahorra muchos problemas.</item>
+        <item>Una promesa cumplida vale más que mil palabras.</item>
+        <item>La confianza se construye con pequeñas acciones.</item>
+        <item>Dar lo mejor sin esperar nada cambia el ánimo.</item>
+        <item>Sé generoso con tu tiempo y tu sonrisa.</item>
+        <item>Haz que alguien se sienta importante hoy.</item>
+        <item>Una palabra amable puede cambiar un mal día.</item>
+        <item>Hoy sé quien alegre el día de alguien más.</item>
+        <item>Ayudar a otros es ayudarte a ti.</item>
+        <item>Los mejores momentos no se planean, se viven.</item>
+        <item>Guarda recuerdos, no solo fotos.</item>
+        <item>Disfruta de la compañía, el tiempo vuela.</item>
+        <item>Hoy cuenta una historia que te hizo reír.</item>
+        <item>Los amigos de verdad están en las buenas y en las malas.</item>
+        <item>La alegría compartida es doble alegría.</item>
+        <item>Reír cura casi todo.</item>
+        <item>Haz un plan sencillo con alguien especial.</item>
+        <item>Salir de la rutina hace bien de vez en cuando.</item>
+        <item>Una escapada corta puede recargarte por semanas.</item>
+        <item>Camina por tu ciudad como si fueras turista.</item>
+        <item>Prueba la comida de un lugar que no conozcas.</item>
+        <item>Los pequeños viajes también cuentan.</item>
+        <item>Hoy abre una ventana y deja entrar luz.</item>
+        <item>Hay belleza en lo cotidiano si sabes mirar.</item>
+        <item>Presta atención al aquí y al ahora.</item>
+        <item>Lo único seguro es el presente, aprovéchalo.</item>
+        <item>Vive hoy como si fuera un día importante.</item>
+        <item>Haz de hoy un buen recuerdo.</item>
+        <item>Cada día es una nueva oportunidad para empezar.</item>
+        <item>Que este día te encuentre con ganas y energía.</item>
+        <item>Hoy te espera algo bueno, solo hay que salir a buscarlo.</item>
+        <item>Que tu día sea tan bueno como tu intención.</item>
+        <item>Sonríe: ya vas ganando.</item>
+        <item>Un día más, un paso más cerca.</item>
+        <item>Este día es tuyo, haz lo que quieras con él.</item>
+        <item>Que lo mejor del día te encuentre sin buscarlo.</item>
+        <item>Hoy te va a salir mejor que ayer.</item>
+        <item>Sigue adelante, el esfuerzo siempre da frutos.</item>
+        <item>Un día a la vez, y todo se vuelve posible.</item>
+        <item>No hay mal que dure cien años ni cuerpo que lo resista.</item>
+        <item>Después de cada caída hay una forma de levantarse más fuerte.</item>
+        <item>No hay camino fácil hacia lugares que valen la pena.</item>
+        <item>Crea el día que quieres vivir.</item>
+        <item>Todo lo que necesitas ya está dentro de ti.</item>
+        <item>Persevera: la recompensa llega.</item>
+        <item>Hoy es un buen día para ser feliz porque sí.</item>
+        <item>El mejor momento del día es el que estás viviendo.</item>
+        <item>Vive ligero, ríe fuerte, ama sin miedo.</item>
+        <item>Lo mejor de ti aún no ha salido.</item>
+        <item>Haz espacio para lo que te hace bien.</item>
+        <item>Cuando todo parezca difícil, recuerda por qué empezaste.</item>
+        <item>Tu esfuerzo no pasa desapercibido, aunque no lo veas.</item>
+        <item>Gracias por no rendirte hoy.</item>
+        <item>Eres capaz de cosas increíbles, ¡demuéstralo!</item>
+        <item>Todo lo que sueñas comienza con un primer intento.</item>
+        <item>Los días buenos se construyen con decisiones pequeñas.</item>
+    </string-array>
+</resources>
