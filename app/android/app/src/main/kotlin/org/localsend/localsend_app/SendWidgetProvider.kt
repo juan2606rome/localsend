@@ -66,7 +66,15 @@ class SendWidgetProvider : AppWidgetProvider() {
 
             val views = RemoteViews(ctx.packageName, R.layout.send_widget)
             views.setImageViewBitmap(R.id.art, art)
-            views.setTextViewText(R.id.btn_settings, style.emoji)
+
+            // Botón de ajustes: con emoji, o invisible (pero tocable) si el usuario lo ocultó.
+            if (style.emoji.isEmpty()) {
+                views.setTextViewText(R.id.btn_settings, "")
+                views.setInt(R.id.btn_settings, "setBackgroundResource", 0)
+            } else {
+                views.setTextViewText(R.id.btn_settings, style.emoji)
+                views.setInt(R.id.btn_settings, "setBackgroundResource", R.drawable.gear_bg)
+            }
 
             val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
 
@@ -77,7 +85,7 @@ class SendWidgetProvider : AppWidgetProvider() {
             }
             views.setOnClickPendingIntent(R.id.root, PendingIntent.getActivity(ctx, id, open, flags))
 
-            // Toque en el emoji: abre la configuración de este widget.
+            // Toque en la esquina del botón de ajustes: abre la configuración de este widget.
             val settings = Intent(ctx, WidgetConfigActivity::class.java).apply {
                 action = "org.localsend.localsend_app.CONFIGURE_WIDGET_$id"
                 putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)

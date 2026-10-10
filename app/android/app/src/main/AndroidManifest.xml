@@ -88,7 +88,11 @@
             </intent-filter>
         </service>
 
-
+        <activity
+    android:name=".CropActivity"
+    android:exported="false"
+    android:theme="@android:style/Theme.Material.NoActionBar" />
+    
         <receiver
             android:name=".SendWidgetProvider"
             android:exported="true">

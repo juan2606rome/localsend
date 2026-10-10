@@ -3,17 +3,20 @@ package org.localsend.localsend_app
 import android.app.Activity
 import android.app.AlertDialog
 import android.appwidget.AppWidgetManager
+import android.content.Context
 import android.content.Intent
 import android.content.res.ColorStateList
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.Gravity
-import android.view.MotionEvent
-import android.view.ScaleGestureDetector
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewOutlineProvider
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.HorizontalScrollView
@@ -23,44 +26,33 @@ import android.widget.ScrollView
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
-import kotlin.math.abs
-import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.roundToInt
 
 class WidgetConfigActivity : Activity() {
 
     companion object {
-        const val CODE_CUSTOM = 1000
-        const val CODE_IMPORT = 1001
         const val REQ_PHOTO = 4711
         const val REQ_FONT = 4712
+        const val REQ_CROP = 4713
     }
+
+    private enum class Page { MAIN, BACKGROUND, TEXT, BUTTON }
 
     private var widgetId = AppWidgetManager.INVALID_APPWIDGET_ID
     private lateinit var style: WidgetStyle
+
+    private var page = Page.MAIN
+    private lateinit var scroll: ScrollView
+    private lateinit var content: LinearLayout
+    private lateinit var headerTitle: TextView
+    private lateinit var backArrow: TextView
     private var preview: ImageView? = null
-    private var mainScroll: ScrollView? = null
 
     private val ink = Color.parseColor("#3B3355")
+    private val soft = Color.parseColor("#7C7694")
     private val paper = Color.parseColor("#FBF8FF")
     private val chipBg = Color.parseColor("#EFE9FA")
     private val accent = Color.parseColor("#9C7BEA")
-
-    // Gestos sobre la foto (valores con decimales para que el movimiento sea suave)
-    private var fxF = 50f
-    private var fyF = 50f
-    private var zoomF = 100f
-    private var lastX = 0f
-    private var lastY = 0f
-    private var photoW = 0
-    private var photoH = 0
-    private var previewBmpW = 0
-    private var previewBmpH = 0
-    private lateinit var scaleDetector: ScaleGestureDetector
-
-    private val dimValues = listOf(0, 25, 45, 65)
-    private val dimLabels = listOf("Nada", "Poco", "Medio", "Mucho")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,23 +67,11 @@ class WidgetConfigActivity : Activity() {
             return
         }
         style = WidgetStore.load(this, widgetId)
-        if (style.fontIndex == FONT_CUSTOM && !FontStore.customFile(this, widgetId).exists()) {
+        if (style.fontIndex == FONT_CUSTOM && FontStore.userTypeface(this, style.customFontName) == null) {
             style.fontIndex = 0
         }
-        fxF = style.focusX.toFloat()
-        fyF = style.focusY.toFloat()
-        zoomF = style.zoom.toFloat()
-        loadPhotoSize()
-
-        scaleDetector = ScaleGestureDetector(this, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
-            override fun onScale(detector: ScaleGestureDetector): Boolean {
-                zoomF = (zoomF * detector.scaleFactor).coerceIn(100f, 300f)
-                syncPhotoStyle()
-                refreshPreview()
-                return true
-            }
-        })
-        buildUi(0)
+        buildShell()
+        showPage(Page.MAIN)
     }
 
     override fun onDestroy() {
@@ -99,21 +79,14 @@ class WidgetConfigActivity : Activity() {
         super.onDestroy()
     }
 
-    // ------------------------------------------------------------ utilidades
+    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+    override fun onBackPressed() {
+        if (page != Page.MAIN) showPage(Page.MAIN) else super.onBackPressed()
+    }
+
+    // ------------------------------------------------------------ utilidades de diseño
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
-
-    private fun loadPhotoSize() {
-        val size = WidgetStore.photoSize(this, widgetId)
-        photoW = size?.first ?: 0
-        photoH = size?.second ?: 0
-    }
-
-    private fun syncPhotoStyle() {
-        style.focusX = fxF.roundToInt()
-        style.focusY = fyF.roundToInt()
-        style.zoom = zoomF.roundToInt()
-    }
 
     private fun round(color: Int, radiusDp: Int, strokeColor: Int = Color.TRANSPARENT, strokeDp: Int = 0): GradientDrawable {
         val g = GradientDrawable()
@@ -123,17 +96,15 @@ class WidgetConfigActivity : Activity() {
         return g
     }
 
-    private fun label(text: String, sizeSp: Float = 14f, bold: Boolean = false, topDp: Int = 0): TextView {
+    private fun label(text: String, sizeSp: Float = 14f, bold: Boolean = false, topDp: Int = 0, muted: Boolean = false): TextView {
         val t = TextView(this)
         t.text = text
         t.textSize = sizeSp
-        t.setTextColor(ink)
+        t.setTextColor(if (muted) soft else ink)
         if (bold) t.setTypeface(t.typeface, Typeface.BOLD)
         t.setPadding(0, dp(topDp), 0, dp(4))
         return t
     }
-
-    private fun section(title: String): TextView = label(title, 17f, true, 22)
 
     private fun chip(text: String, selected: Boolean, face: Typeface? = null, sizeSp: Float = 14f): TextView {
         val t = TextView(this)
@@ -177,6 +148,17 @@ class WidgetConfigActivity : Activity() {
         return t
     }
 
+    private fun hScroll(build: (LinearLayout) -> Unit): HorizontalScrollView {
+        val s = HorizontalScrollView(this)
+        s.isHorizontalScrollBarEnabled = false
+        val inner = LinearLayout(this)
+        inner.orientation = LinearLayout.HORIZONTAL
+        inner.setPadding(0, dp(4), 0, dp(4))
+        build(inner)
+        s.addView(inner)
+        return s
+    }
+
     /** Fila horizontal de opciones: al tocar una se marca sin mover el scroll. */
     private fun <T> choiceRow(
         items: List<T>,
@@ -184,37 +166,41 @@ class WidgetConfigActivity : Activity() {
         makeView: (T, Boolean) -> View,
         onPick: (Int, T) -> Unit
     ): HorizontalScrollView {
-        val scroll = HorizontalScrollView(this)
-        scroll.isHorizontalScrollBarEnabled = false
-        val inner = LinearLayout(this)
-        inner.orientation = LinearLayout.HORIZONTAL
-        inner.setPadding(0, dp(4), 0, dp(4))
-        scroll.addView(inner)
-
-        fun fill() {
-            inner.removeAllViews()
-            items.forEachIndexed { i, item ->
-                val v = makeView(item, i == selectedIdx())
-                v.setOnClickListener {
-                    onPick(i, item)
-                    fill()
-                    refreshPreview()
+        return hScroll { inner ->
+            fun fill() {
+                inner.removeAllViews()
+                items.forEachIndexed { i, item ->
+                    val v = makeView(item, i == selectedIdx())
+                    v.setOnClickListener {
+                        onPick(i, item)
+                        fill()
+                        refreshPreview()
+                    }
+                    inner.addView(v)
                 }
-                inner.addView(v)
             }
+            fill()
         }
-        fill()
-        return scroll
     }
 
-    private fun colorRow(get: () -> Int, set: (Int) -> Unit): View {
+    private fun toggle(text: String, checked: Boolean, onChange: (Boolean) -> Unit): CheckBox {
+        val c = CheckBox(this)
+        c.text = text
+        c.setTextColor(ink)
+        c.buttonTintList = ColorStateList.valueOf(accent)
+        c.isChecked = checked
+        c.setOnCheckedChangeListener { _, isOn -> onChange(isOn) }
+        return c
+    }
+
+    private fun colorRow(get: () -> Int, set: (Int) -> Unit, palette: IntArray = PASTEL_COLORS): View {
         val items = ArrayList<Int?>()
-        PASTEL_COLORS.forEach { items.add(it) }
+        palette.forEach { items.add(it) }
         items.add(null) // botón "color personalizado"
         return choiceRow(
             items,
             selectedIdx = {
-                val i = PASTEL_COLORS.indexOf(get())
+                val i = palette.indexOf(get())
                 if (i >= 0) i else items.size - 1
             },
             makeView = { c, sel ->
@@ -228,233 +214,72 @@ class WidgetConfigActivity : Activity() {
                 } else {
                     openColorDialog(get()) { picked ->
                         set(picked)
-                        rebuildKeepingScroll()
+                        rebuildPage()
                     }
                 }
             }
         )
     }
 
-    private fun dailyCheckbox(): CheckBox {
-        val c = CheckBox(this)
-        c.text = "🌈 Cambiar de color cada día"
-        c.setTextColor(ink)
-        c.isChecked = style.daily
-        c.setOnCheckedChangeListener { _, checked ->
-            style.daily = checked
-            rebuildKeepingScroll()
-        }
-        return c
-    }
-
-    private fun rebuildKeepingScroll() {
-        val y = mainScroll?.scrollY ?: 0
-        buildUi(y)
-    }
-
-    // ------------------------------------------------------------ pantalla
+    // ------------------------------------------------------------ estructura de la pantalla
 
     @Suppress("DEPRECATION")
-    private fun buildUi(restoreScrollY: Int) {
-        val scroll = ScrollView(this)
-        scroll.setBackgroundColor(paper)
-        scroll.isVerticalScrollBarEnabled = false
-
-        val col = LinearLayout(this)
-        col.orientation = LinearLayout.VERTICAL
-        col.setPadding(dp(20), dp(20), dp(20), dp(28))
-        scroll.addView(col)
-        scroll.setOnApplyWindowInsetsListener { _, ins ->
-            col.setPadding(dp(20), dp(20) + ins.systemWindowInsetTop, dp(20), dp(28) + ins.systemWindowInsetBottom)
+    private fun buildShell() {
+        val root = LinearLayout(this)
+        root.orientation = LinearLayout.VERTICAL
+        root.setBackgroundColor(paper)
+        root.setOnApplyWindowInsetsListener { v, ins ->
+            v.setPadding(0, ins.systemWindowInsetTop, 0, ins.systemWindowInsetBottom)
             ins
         }
 
-        col.addView(label("Personaliza tu widget", 24f, true))
-        col.addView(label("Así se verá en tu pantalla:", 13f))
+        // Encabezado
+        val header = LinearLayout(this)
+        header.orientation = LinearLayout.HORIZONTAL
+        header.gravity = Gravity.CENTER_VERTICAL
+        header.setPadding(dp(14), dp(12), dp(20), dp(4))
+        backArrow = TextView(this)
+        backArrow.text = "‹"
+        backArrow.textSize = 32f
+        backArrow.setTextColor(ink)
+        backArrow.setPadding(dp(8), 0, dp(14), dp(4))
+        backArrow.setOnClickListener { showPage(Page.MAIN) }
+        header.addView(backArrow)
+        headerTitle = TextView(this)
+        headerTitle.textSize = 22f
+        headerTitle.setTextColor(ink)
+        headerTitle.setTypeface(headerTitle.typeface, Typeface.BOLD)
+        header.addView(headerTitle)
+        root.addView(header)
 
-        // Vista previa
-        val box = previewBox()
+        // Vista previa fija: siempre visible mientras se edita
+        val box = LinearLayout(this)
+        box.gravity = Gravity.CENTER
+        box.setPadding(dp(10), dp(10), dp(10), dp(10))
+        box.background = round(chipBg, 22)
+        val blp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        blp.leftMargin = dp(20)
+        blp.rightMargin = dp(20)
+        blp.topMargin = dp(6)
+        box.layoutParams = blp
         val img = ImageView(this)
         img.adjustViewBounds = true
         img.scaleType = ImageView.ScaleType.FIT_CENTER
         box.addView(img)
         preview = img
-        col.addView(box)
-        if (style.mode == MODE_PHOTO && style.hasPhoto) attachPhotoGestures(img)
+        root.addView(box)
 
-        // ---- Fondo
-        col.addView(section("🎨 Fondo"))
-        val modeNames = listOf("Color", "Degradado", "Mi foto")
-        col.addView(
-            choiceRow(
-                modeNames,
-                selectedIdx = { style.mode },
-                makeView = { name, sel -> chip(name, sel) },
-                onPick = { i, _ ->
-                    style.mode = i
-                    rebuildKeepingScroll()
-                }
-            )
-        )
+        // Contenido que cambia según la página
+        scroll = ScrollView(this)
+        scroll.isVerticalScrollBarEnabled = false
+        scroll.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
+        content = LinearLayout(this)
+        content.orientation = LinearLayout.VERTICAL
+        content.setPadding(dp(20), dp(10), dp(20), dp(20))
+        scroll.addView(content)
+        root.addView(scroll)
 
-        when (style.mode) {
-            MODE_SOLID, MODE_GRADIENT -> {
-                col.addView(dailyCheckbox())
-                if (style.daily) {
-                    col.addView(label("Los colores pastel cambian solos cada día 🌈", 13f, topDp = 6))
-                } else if (style.mode == MODE_SOLID) {
-                    col.addView(label("Elige un color pastel o crea el tuyo (+)", 13f, topDp = 6))
-                    col.addView(colorRow({ style.color1 }, { style.color1 = it }))
-                } else {
-                    col.addView(label("Primer color", 13f, topDp = 6))
-                    col.addView(colorRow({ style.color1 }, { style.color1 = it }))
-                    col.addView(label("Segundo color", 13f, topDp = 6))
-                    col.addView(colorRow({ style.color2 }, { style.color2 = it }))
-                }
-            }
-            MODE_PHOTO -> {
-                val b = Button(this)
-                b.text = if (style.hasPhoto) "📷 Cambiar foto" else "📷 Elegir foto"
-                b.isAllCaps = false
-                b.setTextColor(Color.WHITE)
-                b.background = round(accent, 22)
-                b.setOnClickListener {
-                    val pick = Intent(Intent.ACTION_OPEN_DOCUMENT)
-                    pick.addCategory(Intent.CATEGORY_OPENABLE)
-                    pick.type = "image/*"
-                    startActivityForResult(pick, REQ_PHOTO)
-                }
-                col.addView(b)
-
-                if (style.hasPhoto) {
-                    col.addView(
-                        label(
-                            "👆 Arrastra la vista previa para mover la foto y pellizca con dos dedos para acercar o alejar.",
-                            13f, topDp = 8
-                        )
-                    )
-                    val row = LinearLayout(this)
-                    row.orientation = LinearLayout.HORIZONTAL
-                    row.setPadding(0, dp(4), 0, dp(4))
-                    val center = chip("🎯 Centrar y reiniciar zoom", false)
-                    center.setOnClickListener {
-                        fxF = 50f
-                        fyF = 50f
-                        zoomF = 100f
-                        syncPhotoStyle()
-                        refreshPreview()
-                    }
-                    row.addView(center)
-                    col.addView(row)
-
-                    col.addView(label("Oscurecer foto (ayuda a leer la letra)", 13f, topDp = 8))
-                    col.addView(
-                        choiceRow(
-                            dimLabels,
-                            selectedIdx = {
-                                var best = 0
-                                for (k in dimValues.indices) {
-                                    if (abs(dimValues[k] - style.dim) < abs(dimValues[best] - style.dim)) best = k
-                                }
-                                best
-                            },
-                            makeView = { name, sel -> chip(name, sel) },
-                            onPick = { i, _ -> style.dim = dimValues[i] }
-                        )
-                    )
-                } else {
-                    col.addView(label("Primero elige una foto.", 13f, topDp = 8))
-                }
-            }
-        }
-
-        // ---- Letra
-        col.addView(section("🔤 Letra"))
-        val codes = ArrayList<Int>()
-        for (i in FONTS.indices) codes.add(i)
-        if (style.customFontName.isNotEmpty() && FontStore.customFile(this, widgetId).exists()) codes.add(CODE_CUSTOM)
-        codes.add(CODE_IMPORT)
-        col.addView(
-            choiceRow(
-                codes,
-                selectedIdx = { codes.indexOf(if (style.fontIndex == FONT_CUSTOM) CODE_CUSTOM else style.fontIndex) },
-                makeView = { code, sel ->
-                    if (code == CODE_IMPORT) {
-                        chip("📁 Importar mi fuente", false)
-                    } else if (code == CODE_CUSTOM) {
-                        chip(
-                            "★ " + style.customFontName, sel,
-                            FontStore.resolve(this, widgetId, WidgetStyle(fontIndex = FONT_CUSTOM)), 16f
-                        )
-                    } else {
-                        chip(FONTS[code].label, sel, FontStore.forIndex(this, code), 16f)
-                    }
-                },
-                onPick = { _, code ->
-                    if (code == CODE_IMPORT) {
-                        pickFont()
-                    } else if (code == CODE_CUSTOM) {
-                        style.fontIndex = FONT_CUSTOM
-                    } else {
-                        style.fontIndex = code
-                    }
-                }
-            )
-        )
-        col.addView(label("Con «Importar» puedes elegir cualquier fuente .ttf u .otf guardada en tu celular.", 12f, topDp = 2))
-
-        col.addView(label("Color de la letra", 13f, topDp = 8))
-        val textNames = listOf("Automático", "Blanco", "Negro", "Otro color")
-        col.addView(
-            choiceRow(
-                textNames,
-                selectedIdx = { style.textMode },
-                makeView = { name, sel -> chip(name, sel) },
-                onPick = { i, _ ->
-                    style.textMode = i
-                    if (i == TEXT_CUSTOM) {
-                        openColorDialog(style.customTextColor) { picked ->
-                            style.customTextColor = picked
-                            rebuildKeepingScroll()
-                        }
-                    }
-                }
-            )
-        )
-
-        val outline = CheckBox(this)
-        outline.text = "Contorno en la letra (se lee sobre cualquier fondo)"
-        outline.setTextColor(ink)
-        outline.isChecked = style.outline
-        outline.setOnCheckedChangeListener { _, checked ->
-            style.outline = checked
-            refreshPreview()
-        }
-        col.addView(outline)
-
-        val title = CheckBox(this)
-        title.text = "Mostrar el texto «Enviar archivos»"
-        title.setTextColor(ink)
-        title.isChecked = style.showTitle
-        title.setOnCheckedChangeListener { _, checked ->
-            style.showTitle = checked
-            refreshPreview()
-        }
-        col.addView(title)
-
-        // ---- Emoji de ajustes
-        col.addView(section("✨ Botón de ajustes del widget"))
-        col.addView(label("Este emoji aparece en la esquina; tócalo para volver aquí.", 13f))
-        col.addView(
-            choiceRow(
-                EMOJIS,
-                selectedIdx = { EMOJIS.indexOf(style.emoji).coerceAtLeast(0) },
-                makeView = { e, sel -> chip(e, sel, null, 22f) },
-                onPick = { _, e -> style.emoji = e }
-            )
-        )
-
-        // ---- Guardar
+        // Botón guardar siempre visible
         val save = Button(this)
         save.text = "Guardar widget"
         save.isAllCaps = false
@@ -462,27 +287,492 @@ class WidgetConfigActivity : Activity() {
         save.setTextColor(Color.WHITE)
         save.background = round(accent, 26)
         val slp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(54))
-        slp.topMargin = dp(26)
+        slp.leftMargin = dp(20)
+        slp.rightMargin = dp(20)
+        slp.topMargin = dp(6)
+        slp.bottomMargin = dp(14)
         save.layoutParams = slp
         save.setOnClickListener { saveAndExit() }
-        col.addView(save)
+        root.addView(save)
 
-        setContentView(scroll)
-        mainScroll = scroll
-        if (restoreScrollY > 0) scroll.post { scroll.scrollTo(0, restoreScrollY) }
+        setContentView(root)
+    }
+
+    private fun showPage(p: Page, restoreY: Int = 0) {
+        page = p
+        content.removeAllViews()
+        backArrow.visibility = if (p == Page.MAIN) View.GONE else View.VISIBLE
+        headerTitle.text = when (p) {
+            Page.MAIN -> "Personaliza tu widget"
+            Page.BACKGROUND -> "Fondo"
+            Page.TEXT -> "Texto"
+            Page.BUTTON -> "Botón de ajustes"
+        }
+        when (p) {
+            Page.MAIN -> buildMain()
+            Page.BACKGROUND -> buildBackground()
+            Page.TEXT -> buildText()
+            Page.BUTTON -> buildButton()
+        }
+        scroll.post { scroll.scrollTo(0, restoreY) }
         refreshPreview()
     }
 
-    private fun previewBox(): LinearLayout {
-        val b = LinearLayout(this)
-        b.gravity = Gravity.CENTER
-        b.setPadding(dp(12), dp(12), dp(12), dp(12))
-        b.background = round(chipBg, 22)
-        val lp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-        lp.topMargin = dp(6)
-        b.layoutParams = lp
-        return b
+    private fun rebuildPage() {
+        showPage(page, scroll.scrollY)
     }
+
+    // ------------------------------------------------------------ página principal
+
+    private fun menuRow(title: String, summary: String, onClick: () -> Unit): View {
+        val row = LinearLayout(this)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = Gravity.CENTER_VERTICAL
+        row.setPadding(dp(18), dp(16), dp(16), dp(16))
+        row.background = round(chipBg, 18)
+        val lp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        lp.bottomMargin = dp(10)
+        row.layoutParams = lp
+
+        val texts = LinearLayout(this)
+        texts.orientation = LinearLayout.VERTICAL
+        texts.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        texts.addView(label(title, 17f, true))
+        texts.addView(label(summary, 13f, muted = true))
+        row.addView(texts)
+
+        val arrow = TextView(this)
+        arrow.text = "›"
+        arrow.textSize = 28f
+        arrow.setTextColor(soft)
+        row.addView(arrow)
+
+        row.setOnClickListener { onClick() }
+        return row
+    }
+
+    private fun buildMain() {
+        content.addView(menuRow("Fondo", backgroundSummary()) { showPage(Page.BACKGROUND) })
+        content.addView(menuRow("Texto", textSummary()) { showPage(Page.TEXT) })
+        content.addView(menuRow("Botón de ajustes", if (style.emoji.isEmpty()) "Oculto" else style.emoji) {
+            showPage(Page.BUTTON)
+        })
+    }
+
+    private fun backgroundSummary(): String {
+        val dailyText = if (style.daily) " · cambia cada día" else ""
+        return when (style.mode) {
+            MODE_SOLID -> "Color$dailyText"
+            MODE_GRADIENT -> "Degradado$dailyText"
+            else -> if (style.photos.isEmpty()) "Foto · sin fotos aún"
+            else if (style.photos.size == 1) "Foto"
+            else "${style.photos.size} fotos · " + (if (style.photoRandom) "aleatoria" else "en orden")
+        }
+    }
+
+    private fun currentFontLabel(): String =
+        if (style.fontIndex == FONT_CUSTOM) FontStore.label(style.customFontName)
+        else FONTS[style.fontIndex.coerceIn(0, FONTS.size - 1)].label
+
+    private fun textSummary(): String {
+        val parts = ArrayList<String>()
+        parts.add(currentFontLabel())
+        if (!style.showTitle && !style.showPhrase) parts.add("sin texto")
+        else if (!style.showPhrase) parts.add("sin frase")
+        else if (!style.showTitle) parts.add("sin título")
+        return parts.joinToString(" · ")
+    }
+
+    // ------------------------------------------------------------ página: fondo
+
+    private fun buildBackground() {
+        content.addView(label("Tipo de fondo", 13f, muted = true))
+        content.addView(
+            choiceRow(
+                listOf("Color", "Degradado", "Foto"),
+                selectedIdx = { style.mode },
+                makeView = { name, sel -> chip(name, sel) },
+                onPick = { i, _ ->
+                    style.mode = i
+                    rebuildPage()
+                }
+            )
+        )
+        if (style.mode == MODE_PHOTO) buildPhotoOptions() else buildColorOptions()
+    }
+
+    private fun buildColorOptions() {
+        content.addView(toggle("Cambiar de color cada día", style.daily) {
+            style.daily = it
+            rebuildPage()
+        })
+
+        if (style.daily) {
+            content.addView(
+                choiceRow(
+                    listOf("Automático (pastel)", "Mis colores"),
+                    selectedIdx = { if (style.dailyAuto) 0 else 1 },
+                    makeView = { name, sel -> chip(name, sel) },
+                    onPick = { i, _ ->
+                        style.dailyAuto = (i == 0)
+                        rebuildPage()
+                    }
+                )
+            )
+            if (style.dailyAuto) {
+                content.addView(label("Se turnan los 12 colores pastel, uno por día.", 13f, topDp = 4, muted = true))
+            } else {
+                buildDailyColorsEditor()
+            }
+        } else if (style.mode == MODE_SOLID) {
+            content.addView(label("Color", 13f, topDp = 8, muted = true))
+            content.addView(colorRow({ style.color1 }, { style.color1 = it }))
+        } else {
+            content.addView(label("Primer color", 13f, topDp = 8, muted = true))
+            content.addView(colorRow({ style.color1 }, { style.color1 = it }))
+            content.addView(label("Segundo color", 13f, topDp = 8, muted = true))
+            content.addView(colorRow({ style.color2 }, { style.color2 = it }))
+        }
+    }
+
+    private fun buildDailyColorsEditor() {
+        val chosen = style.dailyColors
+        content.addView(label("Tus colores, en orden (toca uno para quitarlo)", 13f, topDp = 8, muted = true))
+        if (chosen.isEmpty()) {
+            content.addView(label("Aún no elegiste ninguno. Mientras tanto se usa el modo automático.", 12f, muted = true))
+        } else {
+            content.addView(hScroll { inner ->
+                chosen.forEachIndexed { index, color ->
+                    val s = swatch(color, false, "${index + 1}")
+                    s.setOnClickListener {
+                        val list = style.dailyColors.toMutableList()
+                        list.removeAt(index)
+                        style.dailyColors = list
+                        rebuildPage()
+                    }
+                    inner.addView(s)
+                }
+            })
+            if (style.mode == MODE_GRADIENT && chosen.size == 1) {
+                content.addView(label("Con un solo color el degradado usa una versión más clara. Agrega otro para combinarlos.", 12f, muted = true))
+            }
+        }
+
+        content.addView(label("Toca un color para agregarlo", 13f, topDp = 8, muted = true))
+        content.addView(hScroll { inner ->
+            PASTEL_COLORS.forEach { color ->
+                val s = swatch(color, false)
+                s.setOnClickListener { addDailyColor(color) }
+                inner.addView(s)
+            }
+            val custom = swatch(0, false, "+", rainbow = true)
+            custom.setOnClickListener {
+                openColorDialog(PASTEL_COLORS[6]) { picked -> addDailyColor(picked) }
+            }
+            inner.addView(custom)
+        })
+    }
+
+    private fun addDailyColor(color: Int) {
+        if (style.dailyColors.size >= 12) {
+            Toast.makeText(this, "Máximo 12 colores", Toast.LENGTH_SHORT).show()
+            return
+        }
+        style.dailyColors = style.dailyColors + color
+        rebuildPage()
+    }
+
+    // ------------------------------------------------------------ fotos
+
+    private fun buildPhotoOptions() {
+        val photos = style.photos
+        content.addView(label("Tus fotos (${photos.size} de $MAX_PHOTOS)", 15f, true, 14))
+
+        content.addView(hScroll { inner ->
+            photos.forEach { item ->
+                val v = ImageView(this)
+                v.scaleType = ImageView.ScaleType.CENTER_CROP
+                v.background = round(chipBg, 14)
+                v.outlineProvider = ViewOutlineProvider.BACKGROUND
+                v.clipToOutline = true
+                val thumb = decodeThumb(item)
+                if (thumb != null) v.setImageBitmap(thumb)
+                val lp = LinearLayout.LayoutParams(dp(76), dp(76))
+                lp.rightMargin = dp(10)
+                v.layoutParams = lp
+                v.setOnClickListener { openCrop(item.id) }
+                inner.addView(v)
+            }
+            if (photos.size < MAX_PHOTOS) {
+                val add = TextView(this)
+                add.text = "+"
+                add.textSize = 30f
+                add.gravity = Gravity.CENTER
+                add.setTextColor(Color.WHITE)
+                add.background = round(accent, 14)
+                val lp = LinearLayout.LayoutParams(dp(76), dp(76))
+                lp.rightMargin = dp(10)
+                add.layoutParams = lp
+                add.setOnClickListener { pickPhotos() }
+                inner.addView(add)
+            }
+        })
+
+        if (photos.isEmpty()) {
+            content.addView(label("Toca + para elegir una o varias fotos.", 13f, muted = true))
+            return
+        }
+        content.addView(
+            label(
+                "Toca una foto para recortarla: eliges qué parte se verá. Con 2 o más fotos, el widget cambia de foto cada día.",
+                13f, muted = true
+            )
+        )
+
+        if (photos.size >= 2) {
+            content.addView(label("Orden de las fotos", 13f, topDp = 10, muted = true))
+            content.addView(
+                choiceRow(
+                    listOf("En orden", "Aleatorio"),
+                    selectedIdx = { if (style.photoRandom) 1 else 0 },
+                    makeView = { name, sel -> chip(name, sel) },
+                    onPick = { i, _ -> style.photoRandom = (i == 1) }
+                )
+            )
+        }
+
+        content.addView(label("Si cambias el tamaño del widget", 13f, topDp = 10, muted = true))
+        val fitNames = listOf("Llenar", "Estirar", "Barras")
+        content.addView(
+            choiceRow(
+                fitNames,
+                selectedIdx = { style.fitMode },
+                makeView = { name, sel -> chip(name, sel) },
+                onPick = { i, _ ->
+                    style.fitMode = i
+                    rebuildPage()
+                }
+            )
+        )
+        content.addView(
+            label(
+                when (style.fitMode) {
+                    FIT_STRETCH -> "Estirar: el recorte se deforma para llenar todo el widget."
+                    FIT_BARS -> "Barras: se ve todo tu recorte sin deformarlo y el resto se rellena con el color de abajo."
+                    else -> "Llenar: se llena el widget usando solo lo que está dentro de tu recorte. Nunca se muestra el resto de la foto."
+                },
+                12f, muted = true
+            )
+        )
+        if (style.fitMode == FIT_BARS) {
+            content.addView(label("Color de las barras", 13f, topDp = 8, muted = true))
+            content.addView(colorRow({ style.barColor }, { style.barColor = it }, BAR_COLORS))
+        }
+
+        content.addView(label("Oscurecer foto (ayuda a leer la letra)", 13f, topDp = 10, muted = true))
+        val dimValues = listOf(0, 25, 45, 65)
+        content.addView(
+            choiceRow(
+                listOf("Nada", "Poco", "Medio", "Mucho"),
+                selectedIdx = {
+                    var best = 0
+                    for (k in dimValues.indices) {
+                        if (Math.abs(dimValues[k] - style.dim) < Math.abs(dimValues[best] - style.dim)) best = k
+                    }
+                    best
+                },
+                makeView = { name, sel -> chip(name, sel) },
+                onPick = { i, _ -> style.dim = dimValues[i] }
+            )
+        )
+    }
+
+    private fun decodeThumb(item: PhotoItem): Bitmap? {
+        val f = WidgetStore.photoFile(this, widgetId, item.id)
+        if (!f.exists()) return null
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(f.path, bounds)
+        if (bounds.outWidth <= 0) return null
+        var sample = 1
+        while (min(bounds.outWidth, bounds.outHeight) / (sample * 2) >= 300) sample *= 2
+        val opts = BitmapFactory.Options().apply { inSampleSize = sample }
+        val bmp = BitmapFactory.decodeFile(f.path, opts) ?: return null
+        // la miniatura muestra solo la parte recortada
+        val x = (item.l.coerceIn(0f, 1f) * bmp.width).toInt().coerceIn(0, bmp.width - 1)
+        val y = (item.t.coerceIn(0f, 1f) * bmp.height).toInt().coerceIn(0, bmp.height - 1)
+        val w = ((item.r - item.l) * bmp.width).toInt().coerceIn(1, bmp.width - x)
+        val h = ((item.b - item.t) * bmp.height).toInt().coerceIn(1, bmp.height - y)
+        return try {
+            Bitmap.createBitmap(bmp, x, y, w, h)
+        } catch (e: Exception) {
+            bmp
+        }
+    }
+
+    private fun pickPhotos() {
+        val pick = Intent(Intent.ACTION_OPEN_DOCUMENT)
+        pick.addCategory(Intent.CATEGORY_OPENABLE)
+        pick.type = "image/*"
+        pick.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+        startActivityForResult(pick, REQ_PHOTO)
+    }
+
+    private fun openCrop(photoId: Int) {
+        val i = Intent(this, CropActivity::class.java)
+        i.putExtra(CropActivity.EXTRA_WIDGET_ID, widgetId)
+        i.putExtra(CropActivity.EXTRA_PHOTO_ID, photoId)
+        startActivityForResult(i, REQ_CROP)
+    }
+
+    // ------------------------------------------------------------ página: texto
+
+    private fun buildText() {
+        content.addView(toggle("Mostrar el título «Enviar archivos»", style.showTitle) {
+            style.showTitle = it
+            refreshPreview()
+        })
+        content.addView(toggle("Mostrar la frase del día", style.showPhrase) {
+            style.showPhrase = it
+            refreshPreview()
+        })
+        content.addView(label("Si apagas las dos, el widget muestra solo el fondo.", 12f, muted = true))
+
+        content.addView(label("Fuente", 13f, topDp = 14, muted = true))
+        val dropdown = TextView(this)
+        dropdown.text = currentFontLabel() + "   ▾"
+        dropdown.textSize = 19f
+        dropdown.setTextColor(ink)
+        dropdown.typeface = FontStore.resolve(this, style)
+        dropdown.setPadding(dp(16), dp(13), dp(16), dp(13))
+        dropdown.background = round(chipBg, 14, accent, 1)
+        dropdown.setOnClickListener { openFontDialog() }
+        content.addView(dropdown)
+        content.addView(
+            label(
+                "Con «Importar mi fuente» puedes agregar cualquier archivo .ttf u .otf. Quedan guardadas (★) para usarlas cuando quieras; mantén presionada una para borrarla.",
+                12f, topDp = 4, muted = true
+            )
+        )
+
+        content.addView(label("Color de la letra", 13f, topDp = 12, muted = true))
+        content.addView(
+            choiceRow(
+                listOf("Automático", "Blanco", "Negro", "Otro color"),
+                selectedIdx = { style.textMode },
+                makeView = { name, sel -> chip(name, sel) },
+                onPick = { i, _ ->
+                    style.textMode = i
+                    if (i == TEXT_CUSTOM) {
+                        openColorDialog(style.customTextColor) { picked ->
+                            style.customTextColor = picked
+                            rebuildPage()
+                        }
+                    }
+                }
+            )
+        )
+
+        content.addView(toggle("Contorno en la letra (se lee sobre cualquier fondo)", style.outline) {
+            style.outline = it
+            refreshPreview()
+        })
+    }
+
+    private fun openFontDialog() {
+        val user = FontStore.userFonts(this)
+        val labels = ArrayList<String>()
+        FONTS.forEach { labels.add(it.label) }
+        user.forEach { labels.add("★ " + FontStore.label(it)) }
+        labels.add("Importar mi fuente…")
+
+        val adapter = object : ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, labels) {
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                val v = super.getView(position, convertView, parent) as TextView
+                v.textSize = 18f
+                v.setTextColor(ink)
+                v.typeface = when {
+                    position < FONTS.size -> FontStore.forIndex(context, position)
+                    position < FONTS.size + user.size ->
+                        FontStore.userTypeface(context, user[position - FONTS.size]) ?: Typeface.DEFAULT
+                    else -> Typeface.DEFAULT
+                }
+                return v
+            }
+        }
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("Elige una fuente")
+            .setAdapter(adapter) { _, which ->
+                if (which < FONTS.size) {
+                    style.fontIndex = which
+                    rebuildPage()
+                } else if (which < FONTS.size + user.size) {
+                    style.fontIndex = FONT_CUSTOM
+                    style.customFontName = user[which - FONTS.size]
+                    rebuildPage()
+                } else {
+                    pickFont()
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .create()
+        dialog.show()
+
+        // Mantener presionada una fuente propia (★) para borrarla
+        dialog.listView.setOnItemLongClickListener { _, _, pos, _ ->
+            if (pos >= FONTS.size && pos < FONTS.size + user.size) {
+                val name = user[pos - FONTS.size]
+                AlertDialog.Builder(this)
+                    .setTitle("Borrar fuente")
+                    .setMessage("¿Borrar «" + FontStore.label(name) + "» de tus fuentes importadas?")
+                    .setPositiveButton("Borrar") { _, _ ->
+                        FontStore.deleteUser(this, name)
+                        if (style.fontIndex == FONT_CUSTOM && style.customFontName == name) style.fontIndex = 0
+                        dialog.dismiss()
+                        rebuildPage()
+                    }
+                    .setNegativeButton("Cancelar", null)
+                    .show()
+                true
+            } else {
+                false
+            }
+        }
+    }
+
+    private fun pickFont() {
+        val i = Intent(Intent.ACTION_OPEN_DOCUMENT)
+        i.addCategory(Intent.CATEGORY_OPENABLE)
+        i.type = "*/*"
+        startActivityForResult(i, REQ_FONT)
+    }
+
+    // ------------------------------------------------------------ página: botón de ajustes
+
+    private fun buildButton() {
+        content.addView(label("Este icono aparece en la esquina del widget. Al tocarlo vuelves a esta pantalla.", 13f, muted = true))
+        val options = ArrayList<String>()
+        options.addAll(EMOJIS)
+        options.add("") // oculto
+        content.addView(
+            choiceRow(
+                options,
+                selectedIdx = { options.indexOf(style.emoji).coerceAtLeast(0) },
+                makeView = { e, sel ->
+                    if (e.isEmpty()) chip("Oculto", sel) else chip(e, sel, null, 22f)
+                },
+                onPick = { _, e -> style.emoji = e }
+            )
+        )
+        content.addView(
+            label(
+                "Si lo ocultas, el botón sigue funcionando: toca la esquina superior derecha del widget. También puedes mantener presionado el widget y elegir configurar (Android 9 o superior).",
+                12f, topDp = 6, muted = true
+            )
+        )
+    }
+
+    // ------------------------------------------------------------ vista previa
 
     private fun refreshPreview() {
         val img = preview ?: return
@@ -490,68 +780,18 @@ class WidgetConfigActivity : Activity() {
         val wDp = o.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0).let { if (it < 110) 250 else it }
         val hDp = o.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0).let { if (it < 70) 130 else it }
 
-        var pw = resources.displayMetrics.widthPixels - dp(64)
+        var pw = resources.displayMetrics.widthPixels - dp(60)
         var ph = pw * hDp / wDp
-        val maxH = dp(240)
+        val maxH = dp(150)
         if (ph > maxH) {
             ph = maxH
             pw = ph * wDp / hDp
         }
         pw = min(pw, 1100)
-        previewBmpW = pw
-        previewBmpH = ph
         val day = WidgetStore.today()
         img.setImageBitmap(
             WidgetRenderer.render(this, style, widgetId, pw, ph, WidgetStore.phraseFor(this, day), day)
         )
-    }
-
-    // ------------------------------------------------------------ mover y hacer zoom a la foto
-
-    private fun attachPhotoGestures(img: ImageView) {
-        img.setOnTouchListener { v, ev ->
-            scaleDetector.onTouchEvent(ev)
-            when (ev.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    lastX = ev.x
-                    lastY = ev.y
-                    v.parent.requestDisallowInterceptTouchEvent(true)
-                }
-                MotionEvent.ACTION_POINTER_DOWN, MotionEvent.ACTION_POINTER_UP -> {
-                    val idx = if (ev.actionMasked == MotionEvent.ACTION_POINTER_UP && ev.actionIndex == 0) 1 else 0
-                    lastX = ev.getX(idx)
-                    lastY = ev.getY(idx)
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    if (!scaleDetector.isInProgress && ev.pointerCount == 1) {
-                        panBy(ev.x - lastX, ev.y - lastY, v)
-                    }
-                    lastX = ev.x
-                    lastY = ev.y
-                }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL ->
-                    v.parent.requestDisallowInterceptTouchEvent(false)
-            }
-            true
-        }
-    }
-
-    /** Mueve la foto con el dedo: la imagen sigue al dedo, igual que en cualquier galería. */
-    private fun panBy(dx: Float, dy: Float, v: View) {
-        val bw = previewBmpW
-        val bh = previewBmpH
-        if (photoW <= 0 || photoH <= 0 || bw <= 0 || bh <= 0 || v.width <= 0) return
-
-        val k = bw.toFloat() / v.width // píxeles de pantalla -> píxeles de la imagen
-        val zoom = zoomF / 100f
-        val base = max(bw.toFloat() / photoW, bh.toFloat() / photoH)
-        val overflowX = photoW * base * zoom - bw
-        val overflowY = photoH * base * zoom - bh
-
-        if (overflowX > 1f) fxF = (fxF - dx * k / overflowX * 100f).coerceIn(0f, 100f)
-        if (overflowY > 1f) fyF = (fyF - dy * k / overflowY * 100f).coerceIn(0f, 100f)
-        syncPhotoStyle()
-        refreshPreview()
     }
 
     // ------------------------------------------------------------ selector de color propio
@@ -604,40 +844,53 @@ class WidgetConfigActivity : Activity() {
             .show()
     }
 
-    // ------------------------------------------------------------ fuente, foto y guardado
-
-    private fun pickFont() {
-        val i = Intent(Intent.ACTION_OPEN_DOCUMENT)
-        i.addCategory(Intent.CATEGORY_OPENABLE)
-        i.type = "*/*"
-        startActivityForResult(i, REQ_FONT)
-    }
+    // ------------------------------------------------------------ resultados y guardado
 
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode != RESULT_OK) return
-        val uri = data?.data ?: return
+
+        if (requestCode == REQ_CROP) {
+            // el recorte o la eliminación ya quedaron guardados: se vuelven a leer las fotos
+            style.photos = WidgetStore.loadPhotos(this, widgetId)
+            rebuildPage()
+            return
+        }
+        if (resultCode != RESULT_OK || data == null) return
 
         if (requestCode == REQ_PHOTO) {
-            if (WidgetStore.savePhoto(this, widgetId, uri)) {
-                style.hasPhoto = true
-                style.mode = MODE_PHOTO
-                fxF = 50f
-                fyF = 50f
-                zoomF = 100f
-                syncPhotoStyle()
-                loadPhotoSize()
-                rebuildKeepingScroll()
-            } else {
-                Toast.makeText(this, "No pude abrir esa foto", Toast.LENGTH_LONG).show()
+            val uris = ArrayList<android.net.Uri>()
+            val clip = data.clipData
+            if (clip != null) {
+                for (i in 0 until clip.itemCount) uris.add(clip.getItemAt(i).uri)
+            } else if (data.data != null) {
+                uris.add(data.data!!)
             }
+
+            val added = ArrayList<PhotoItem>()
+            var failed = 0
+            for (u in uris) {
+                val item = WidgetStore.addPhoto(this, widgetId, u)
+                if (item != null) added.add(item) else failed++
+            }
+            style.photos = WidgetStore.loadPhotos(this, widgetId)
+            if (added.isNotEmpty()) style.mode = MODE_PHOTO
+            if (failed > 0) {
+                Toast.makeText(
+                    this,
+                    "No se pudieron agregar $failed foto(s). El máximo es $MAX_PHOTOS.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+            // si se agregó una sola foto, se abre directo el recorte
+            if (added.size == 1) openCrop(added[0].id) else rebuildPage()
         } else if (requestCode == REQ_FONT) {
-            val name = FontStore.saveCustom(this, widgetId, uri)
+            val uri = data.data ?: return
+            val name = FontStore.saveUser(this, uri)
             if (name != null) {
                 style.fontIndex = FONT_CUSTOM
                 style.customFontName = name
-                rebuildKeepingScroll()
+                rebuildPage()
             } else {
                 Toast.makeText(this, "Ese archivo no es una fuente válida (usa .ttf u .otf)", Toast.LENGTH_LONG).show()
             }
@@ -645,7 +898,6 @@ class WidgetConfigActivity : Activity() {
     }
 
     private fun saveAndExit() {
-        syncPhotoStyle()
         WidgetStore.save(this, widgetId, style)
         SendWidgetProvider.updateWidget(this, AppWidgetManager.getInstance(this), widgetId)
         setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))

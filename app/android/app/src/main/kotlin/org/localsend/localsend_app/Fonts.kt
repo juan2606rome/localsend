@@ -9,7 +9,7 @@ import java.io.FileOutputStream
 
 class FontDef(val label: String, val asset: String?, val family: String?, val style: Int = Typeface.NORMAL)
 
-/** Los primeros 8 son fuentes del sistema; el resto son fuentes de Google Fonts (licencia OFL) dentro de assets/fonts. */
+/** Los primeros 8 son fuentes del sistema; el resto son fuentes libres (licencia OFL) dentro de assets/fonts. */
 val FONTS = listOf(
     FontDef("Normal", null, "sans-serif-medium"),
     FontDef("Delgada", null, "sans-serif-light"),
@@ -28,16 +28,20 @@ val FONTS = listOf(
     FontDef("Poppins", "fonts/Poppins-SemiBold.ttf", null),
     FontDef("Quicksand", "fonts/Quicksand.ttf", null),
     FontDef("Playfair", "fonts/PlayfairDisplay.ttf", null),
-    FontDef("Abril Fatface", "fonts/AbrilFatface-Regular.ttf", null)
+    FontDef("Abril Fatface", "fonts/AbrilFatface-Regular.ttf", null),
+    FontDef("Press Start 2P", "fonts/PressStart2P-Regular.ttf", null),
+    FontDef("Silkscreen", "fonts/Silkscreen-Regular.ttf", null),
+    FontDef("VT323", "fonts/VT323-Regular.ttf", null)
 )
 
-/** fontIndex = -1 significa "la fuente que importó el usuario". */
+/** fontIndex = -1 significa "una fuente de la biblioteca del usuario" (su nombre está en customFontName). */
 const val FONT_CUSTOM = -1
 
 object FontStore {
     private val cache = HashMap<Int, Typeface>()
+    private val userCache = HashMap<String, Typeface>()
 
-    fun customFile(ctx: Context, id: Int) = File(ctx.filesDir, "widget_font_$id.ttf")
+    // ------------------------------------------------------------ fuentes incluidas
 
     fun forIndex(ctx: Context, index: Int): Typeface {
         val i = index.coerceIn(0, FONTS.size - 1)
@@ -55,24 +59,50 @@ object FontStore {
         return tf
     }
 
-    fun resolve(ctx: Context, id: Int, cfg: WidgetStyle): Typeface {
-        if (cfg.fontIndex == FONT_CUSTOM) {
-            val f = customFile(ctx, id)
-            if (f.exists()) {
-                try {
-                    return Typeface.createFromFile(f)
-                } catch (e: Exception) {
-                    // cae a la fuente normal
-                }
-            }
-            return forIndex(ctx, 0)
-        }
-        return forIndex(ctx, cfg.fontIndex)
+    // ------------------------------------------------------------ biblioteca del usuario (compartida por todos los widgets)
+
+    private fun userDir(ctx: Context): File {
+        val d = File(ctx.filesDir, "user_fonts")
+        if (!d.exists()) d.mkdirs()
+        return d
     }
 
-    /** Copia una fuente .ttf/.otf elegida por el usuario. Devuelve su nombre, o null si no es válida. */
-    fun saveCustom(ctx: Context, id: Int, uri: Uri): String? {
-        val tmp = File(ctx.filesDir, "widget_font_$id.tmp")
+    private fun isFontName(name: String): Boolean {
+        val n = name.lowercase()
+        return n.endsWith(".ttf") || n.endsWith(".otf")
+    }
+
+    fun userFonts(ctx: Context): List<String> =
+        (userDir(ctx).listFiles()?.map { it.name } ?: emptyList()).filter { isFontName(it) }.sorted()
+
+    fun label(fileName: String): String = fileName.substringBeforeLast('.')
+
+    fun userTypeface(ctx: Context, fileName: String): Typeface? {
+        val cached = userCache[fileName]
+        if (cached != null) return cached
+        val f = File(userDir(ctx), fileName)
+        if (!f.exists()) return null
+        return try {
+            val tf = Typeface.createFromFile(f)
+            if (tf === Typeface.DEFAULT) {
+                null
+            } else {
+                userCache[fileName] = tf
+                tf
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun deleteUser(ctx: Context, fileName: String) {
+        File(userDir(ctx), fileName).delete()
+        userCache.remove(fileName)
+    }
+
+    /** Copia una fuente .ttf/.otf elegida por el usuario a la biblioteca. Devuelve el nombre del archivo, o null si no es válida. */
+    fun saveUser(ctx: Context, uri: Uri): String? {
+        val tmp = File(userDir(ctx), "import.tmp")
         try {
             var name = "Mi fuente.ttf"
             ctx.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
@@ -81,8 +111,8 @@ object FontStore {
                     if (n != null) name = n
                 }
             }
-            val lower = name.lowercase()
-            if (!(lower.endsWith(".ttf") || lower.endsWith(".otf"))) return null
+            if (!isFontName(name)) return null
+            val safe = name.replace(Regex("[^A-Za-z0-9 _.-]"), "_")
 
             val input = ctx.contentResolver.openInputStream(uri) ?: return null
             input.use { ins -> FileOutputStream(tmp).use { out -> ins.copyTo(out) } }
@@ -93,16 +123,28 @@ object FontStore {
                 tmp.delete()
                 return null
             }
-            val dest = customFile(ctx, id)
+            val dest = File(userDir(ctx), safe)
             dest.delete()
+            userCache.remove(safe)
             if (!tmp.renameTo(dest)) {
                 tmp.delete()
                 return null
             }
-            return name.substringBeforeLast('.')
+            return safe
         } catch (e: Exception) {
             tmp.delete()
             return null
         }
+    }
+
+    // ------------------------------------------------------------ fuente de un widget
+
+    fun resolve(ctx: Context, cfg: WidgetStyle): Typeface {
+        if (cfg.fontIndex == FONT_CUSTOM) {
+            val tf = userTypeface(ctx, cfg.customFontName)
+            if (tf != null) return tf
+            return forIndex(ctx, 0)
+        }
+        return forIndex(ctx, cfg.fontIndex)
     }
 }

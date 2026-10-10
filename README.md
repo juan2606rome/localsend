@@ -13,16 +13,26 @@ LocalSend permite compartir archivos entre dispositivos cercanos a través de la
 **Widget**
 - Un toque abre LocalSend directamente en el menú de envío (archivos, medios, texto, carpeta y portapapeles).
 - Tamaño ajustable. El contenido se adapta a las dimensiones y la forma del widget.
-- Una frase distinta para cada día del año (366 frases).
+- Una frase distinta para cada día del año (366 frases), que puede ocultarse.
 
-**Personalización**
-- Fondo de color sólido, degradado o foto propia.
-- Cambio automático de color cada día, tanto en color sólido como en degradado.
+**Fondo**
+- Color sólido, degradado o fotos propias.
+- Cambio automático de color cada día, con la paleta pastel incluida o con una lista de colores elegida por el usuario.
 - Paleta de colores pastel y selector de color propio.
-- Foto de fondo con zoom, posición ajustable arrastrando y opción de oscurecerla.
-- Fuentes del sistema, fuentes incluidas de Google Fonts e importación de fuentes propias (.ttf y .otf).
-- Color de texto automático según el fondo, contorno opcional y posibilidad de ocultar el título.
-- Icono del botón de configuración a elección.
+
+**Fotos**
+- Una o varias fotos. Con más de una, el widget cambia de foto cada día, en orden o de forma aleatoria.
+- Editor de recorte: se elige qué parte de la foto se verá, arrastrando las esquinas y los lados del recuadro, con formas predefinidas (libre, como el widget, 1:1, 16:9 y 9:16).
+- El recorte se conserva al cambiar el tamaño del widget. Hay tres modos de ajuste: llenar (usa solo lo recortado), estirar y barras (muestra todo el recorte con barras del color elegido).
+- Opción para oscurecer la foto y facilitar la lectura del texto.
+
+**Texto**
+- Menú desplegable de fuentes: fuentes del sistema, fuentes libres incluidas y una biblioteca de fuentes propias importadas desde el dispositivo (.ttf y .otf).
+- Color de texto automático según el fondo, contorno opcional y posibilidad de ocultar el título y la frase.
+
+**Configuración**
+- Pantalla de ajustes organizada por secciones (Fondo, Texto y Botón de ajustes) con vista previa permanente.
+- Icono del botón de configuración a elección, o invisible.
 
 ## Instalación
 
@@ -63,6 +73,8 @@ La versión release requiere una llave de firma propia, configurada en `app/andr
 3. `MainActivity` registra la petición y la expone al código Dart mediante el método `consumeOpenSendMenu`.
 4. `HomePage` consulta ese método al iniciar y al volver a primer plano. Si hay una petición pendiente, cambia a la pestaña de envío y abre `AddFileDialog`.
 
+Los recortes se guardan como proporciones de la foto original (de 0 a 1), por lo que no dependen del tamaño del widget.
+
 ## Cambios respecto a LocalSend
 
 Android (`app/android/app/src/main/`):
@@ -71,16 +83,17 @@ Android (`app/android/app/src/main/`):
 |---|---|
 | `kotlin/.../SendWidgetProvider.kt` | Nuevo. Dibuja y actualiza el widget |
 | `kotlin/.../WidgetRenderer.kt` | Nuevo. Genera la imagen del widget |
-| `kotlin/.../WidgetStyle.kt` | Nuevo. Ajustes guardados por widget |
-| `kotlin/.../Fonts.kt` | Nuevo. Fuentes incluidas e importadas |
+| `kotlin/.../WidgetStyle.kt` | Nuevo. Ajustes y fotos guardados por widget |
+| `kotlin/.../Fonts.kt` | Nuevo. Fuentes incluidas y biblioteca de fuentes importadas |
 | `kotlin/.../WidgetConfigActivity.kt` | Nuevo. Pantalla de personalización |
+| `kotlin/.../CropActivity.kt` | Nuevo. Editor de recorte de fotos |
 | `kotlin/.../MainActivity.kt` | Modificado. Reconoce la acción del widget |
 | `res/layout/send_widget.xml` | Nuevo |
 | `res/xml/send_widget_info.xml` | Nuevo |
 | `res/drawable/gear_bg.xml` | Nuevo |
 | `res/values/frases.xml` | Nuevo. Las 366 frases |
-| `assets/fonts/` | Nuevo. Fuentes de Google Fonts |
-| `AndroidManifest.xml` | Modificado. Registra el widget y la pantalla de ajustes |
+| `assets/fonts/` | Nuevo. Fuentes libres incluidas |
+| `AndroidManifest.xml` | Modificado. Registra el widget y sus pantallas |
 
 Dart (`app/lib/`):
 
@@ -93,6 +106,8 @@ Dart (`app/lib/`):
 
 Este proyecto es una obra derivada de **LocalSend**, distribuida bajo la **Licencia Apache 2.0**. Se conserva el archivo [LICENSE](LICENSE) original, así como los avisos de copyright de los autores de LocalSend. Los archivos modificados están indicados en la sección anterior, tal como exige la licencia. Las modificaciones de este fork se distribuyen bajo la misma licencia.
 
-Fuentes incluidas, de [Google Fonts](https://fonts.google.com), bajo la licencia SIL Open Font License 1.1: Pacifico, Lobster, Dancing Script, Caveat, Indie Flower, Bebas Neue, Poppins, Quicksand, Playfair Display y Abril Fatface.
+Fuentes incluidas, de [Google Fonts](https://fonts.google.com), bajo la licencia SIL Open Font License 1.1: Pacifico, Lobster, Dancing Script, Caveat, Indie Flower, Bebas Neue, Poppins, Quicksand, Playfair Display, Abril Fatface, Press Start 2P, Silkscreen y VT323.
+
+Las fuentes que cada persona importe desde su dispositivo no se incluyen en este repositorio ni en el APK, y su licencia es responsabilidad de quien las use.
 
 Créditos principales: el equipo y los colaboradores de [LocalSend](https://github.com/localsend/localsend).
