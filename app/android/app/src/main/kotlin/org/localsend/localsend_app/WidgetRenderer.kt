@@ -41,13 +41,14 @@ object WidgetRenderer {
 
     fun render(
         ctx: Context, cfg: WidgetStyle, widgetId: Int,
-        w: Int, h: Int, phrase: String, dayOfYear: Int
+        w: Int, h: Int, phrase: String
     ): Bitmap {
         val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bmp)
         val rect = RectF(0f, 0f, w.toFloat(), h.toFloat())
         val radius = min(w, h) * 0.14f
-        val bgLum = drawBackground(ctx, cfg, widgetId, canvas, rect, radius, dayOfYear)
+        val slot = WidgetStore.slotFor(cfg)
+        val bgLum = drawBackground(ctx, cfg, widgetId, canvas, rect, radius, slot)
         drawTexts(ctx, cfg, canvas, w, h, phrase, bgLum)
         return bmp
     }
@@ -59,14 +60,14 @@ object WidgetRenderer {
 
     private fun drawBackground(
         ctx: Context, cfg: WidgetStyle, widgetId: Int,
-        canvas: Canvas, rect: RectF, radius: Float, day: Int
+        canvas: Canvas, rect: RectF, radius: Float, slot: Long
     ): Float {
         val w = rect.width()
         val h = rect.height()
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
 
         if (cfg.mode == MODE_PHOTO) {
-            val lum = drawPhoto(ctx, cfg, widgetId, canvas, rect, radius, day)
+            val lum = drawPhoto(ctx, cfg, widgetId, canvas, rect, radius, slot)
             if (lum != null) return lum
         }
 
@@ -78,8 +79,8 @@ object WidgetRenderer {
             val c2: Int
             if (cfg.daily) {
                 val auto = cfg.dailyAuto || cfg.dailyColors.isEmpty()
-                c1 = pal[day % n]
-                c2 = if (n >= 2) pal[(day + (if (auto) 4 else 1)) % n] else blend(c1, Color.WHITE, 0.4f)
+                c1 = pal[(slot % n).toInt()]
+                c2 = if (n >= 2) pal[((slot + (if (auto) 4 else 1)) % n).toInt()] else blend(c1, Color.WHITE, 0.4f)
             } else {
                 c1 = cfg.color1
                 c2 = cfg.color2
@@ -90,7 +91,7 @@ object WidgetRenderer {
         }
 
         // Color sólido (también es el plan B si no hay foto)
-        val solid = if (cfg.daily && cfg.mode != MODE_PHOTO) pal[day % n] else cfg.color1
+        val solid = if (cfg.daily && cfg.mode != MODE_PHOTO) pal[(slot % n).toInt()] else cfg.color1
         paint.color = solid
         canvas.drawRoundRect(rect, radius, radius, paint)
         return luminance(solid)
@@ -102,9 +103,9 @@ object WidgetRenderer {
      */
     private fun drawPhoto(
         ctx: Context, cfg: WidgetStyle, widgetId: Int,
-        canvas: Canvas, rect: RectF, radius: Float, day: Int
+        canvas: Canvas, rect: RectF, radius: Float, slot: Long
     ): Float? {
-        val item = WidgetStore.photoFor(cfg, widgetId, day) ?: return null
+        val item = WidgetStore.photoFor(cfg, widgetId, slot) ?: return null
         val file = WidgetStore.photoFile(ctx, widgetId, item.id)
         if (!file.exists()) return null
 

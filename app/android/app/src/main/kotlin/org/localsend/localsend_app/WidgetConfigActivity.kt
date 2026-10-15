@@ -11,7 +11,9 @@ import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -47,6 +49,12 @@ class WidgetConfigActivity : Activity() {
     private lateinit var headerTitle: TextView
     private lateinit var backArrow: TextView
     private var preview: ImageView? = null
+    private lateinit var bottomButton: Button
+
+    // Cola de fotos pendientes de recortar (cuando se eligen varias a la vez)
+    private val cropQueue = ArrayList<Int>()
+    private var cropTotal = 0
+    private var cropDone = 0
 
     private val ink = Color.parseColor("#3B3355")
     private val soft = Color.parseColor("#7C7694")
@@ -81,7 +89,16 @@ class WidgetConfigActivity : Activity() {
 
     @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
     override fun onBackPressed() {
-        if (page != Page.MAIN) showPage(Page.MAIN) else super.onBackPressed()
+        if (page != Page.MAIN) {
+            showPage(Page.MAIN)
+            return
+        }
+        AlertDialog.Builder(this)
+            .setTitle("¿Salir sin guardar?")
+            .setMessage("Los cambios que hiciste en el widget se perderán.")
+            .setPositiveButton("Salir") { _, _ -> super.onBackPressed() }
+            .setNegativeButton("Seguir editando", null)
+            .show()
     }
 
     // ------------------------------------------------------------ utilidades de diseño
@@ -279,20 +296,18 @@ class WidgetConfigActivity : Activity() {
         scroll.addView(content)
         root.addView(scroll)
 
-        // Botón guardar siempre visible
+        // Botón inferior siempre visible: "Guardar widget" en el menú y "Listo" dentro de cada sección
         val save = Button(this)
-        save.text = "Guardar widget"
+        bottomButton = save
         save.isAllCaps = false
         save.textSize = 17f
         save.setTextColor(Color.WHITE)
-        save.background = round(accent, 26)
         val slp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(54))
         slp.leftMargin = dp(20)
         slp.rightMargin = dp(20)
         slp.topMargin = dp(6)
         slp.bottomMargin = dp(14)
         save.layoutParams = slp
-        save.setOnClickListener { saveAndExit() }
         root.addView(save)
 
         setContentView(root)
@@ -313,6 +328,15 @@ class WidgetConfigActivity : Activity() {
             Page.BACKGROUND -> buildBackground()
             Page.TEXT -> buildText()
             Page.BUTTON -> buildButton()
+        }
+        if (p == Page.MAIN) {
+            bottomButton.text = "Guardar widget"
+            bottomButton.background = round(accent, 26)
+            bottomButton.setOnClickListener { saveAndExit() }
+        } else {
+            bottomButton.text = "Listo"
+            bottomButton.background = round(ink, 26)
+            bottomButton.setOnClickListener { showPage(Page.MAIN) }
         }
         scroll.post { scroll.scrollTo(0, restoreY) }
         refreshPreview()
@@ -357,17 +381,26 @@ class WidgetConfigActivity : Activity() {
         content.addView(menuRow("Botón de ajustes", if (style.emoji.isEmpty()) "Oculto" else style.emoji) {
             showPage(Page.BUTTON)
         })
+        content.addView(
+            label("Cuando termines de configurar todo, toca «Guardar widget» (abajo).", 13f, topDp = 8, muted = true)
+        )
     }
 
     private fun backgroundSummary(): String {
-        val dailyText = if (style.daily) " · cambia cada día" else ""
+        val dailyText = if (style.daily) " · cambia " + everyText() else ""
         return when (style.mode) {
             MODE_SOLID -> "Color$dailyText"
             MODE_GRADIENT -> "Degradado$dailyText"
             else -> if (style.photos.isEmpty()) "Foto · sin fotos aún"
             else if (style.photos.size == 1) "Foto"
-            else "${style.photos.size} fotos · " + (if (style.photoRandom) "aleatoria" else "en orden")
+            else "${style.photos.size} fotos · " + (if (style.photoRandom) "aleatoria" else "en orden") +
+                " · " + everyText()
         }
+    }
+
+    private fun everyText(): String {
+        val idx = CHANGE_VALUES.indexOf(style.changeMinutes).coerceAtLeast(0)
+        return if (idx == 0) "cada día" else "cada " + CHANGE_LABELS[idx]
     }
 
     private fun currentFontLabel(): String =
@@ -402,7 +435,7 @@ class WidgetConfigActivity : Activity() {
     }
 
     private fun buildColorOptions() {
-        content.addView(toggle("Cambiar de color cada día", style.daily) {
+        content.addView(toggle("Cambiar de color automáticamente", style.daily) {
             style.daily = it
             rebuildPage()
         })
@@ -420,10 +453,11 @@ class WidgetConfigActivity : Activity() {
                 )
             )
             if (style.dailyAuto) {
-                content.addView(label("Se turnan los 12 colores pastel, uno por día.", 13f, topDp = 4, muted = true))
+                content.addView(label("Se turnan los 12 colores pastel.", 13f, topDp = 4, muted = true))
             } else {
                 buildDailyColorsEditor()
             }
+            buildIntervalRow()
         } else if (style.mode == MODE_SOLID) {
             content.addView(label("Color", 13f, topDp = 8, muted = true))
             content.addView(colorRow({ style.color1 }, { style.color1 = it }))
@@ -433,6 +467,29 @@ class WidgetConfigActivity : Activity() {
             content.addView(label("Segundo color", 13f, topDp = 8, muted = true))
             content.addView(colorRow({ style.color2 }, { style.color2 = it }))
         }
+    }
+
+    /** Cada cuánto cambian los colores o las fotos. */
+    private fun buildIntervalRow() {
+        content.addView(label("Cambiar cada", 13f, topDp = 10, muted = true))
+        content.addView(
+            choiceRow(
+                CHANGE_LABELS,
+                selectedIdx = { CHANGE_VALUES.indexOf(style.changeMinutes).coerceAtLeast(0) },
+                makeView = { name, sel -> chip(name, sel) },
+                onPick = { i, _ ->
+                    style.changeMinutes = CHANGE_VALUES[i]
+                    rebuildPage()
+                }
+            )
+        )
+        content.addView(
+            label(
+                if (style.changeMinutes >= 1440) "Cambia una vez al día."
+                else "Los intervalos cortos gastan un poco más de batería. El cambio ocurre mientras usas el celular, para no gastar de más.",
+                12f, muted = true
+            )
+        )
     }
 
     private fun buildDailyColorsEditor() {
@@ -500,7 +557,10 @@ class WidgetConfigActivity : Activity() {
                 val lp = LinearLayout.LayoutParams(dp(76), dp(76))
                 lp.rightMargin = dp(10)
                 v.layoutParams = lp
-                v.setOnClickListener { openCrop(item.id) }
+                v.setOnClickListener {
+                    cropQueue.clear()
+                    openCrop(item.id, 1, 1)
+                }
                 inner.addView(v)
             }
             if (photos.size < MAX_PHOTOS) {
@@ -524,7 +584,7 @@ class WidgetConfigActivity : Activity() {
         }
         content.addView(
             label(
-                "Toca una foto para recortarla: eliges qué parte se verá. Con 2 o más fotos, el widget cambia de foto cada día.",
+                "Toca una foto para recortarla: eliges qué parte se verá. Con 2 o más fotos, el widget las va cambiando.",
                 13f, muted = true
             )
         )
@@ -539,6 +599,7 @@ class WidgetConfigActivity : Activity() {
                     onPick = { i, _ -> style.photoRandom = (i == 1) }
                 )
             )
+            buildIntervalRow()
         }
 
         content.addView(label("Si cambias el tamaño del widget", 13f, topDp = 10, muted = true))
@@ -609,7 +670,45 @@ class WidgetConfigActivity : Activity() {
         }
     }
 
+    /** Primero la galería de fotos (con sus álbumes); el explorador de archivos queda como segunda opción. */
     private fun pickPhotos() {
+        val remaining = MAX_PHOTOS - style.photos.size
+        if (remaining <= 0) {
+            Toast.makeText(this, "Ya tienes el máximo de $MAX_PHOTOS fotos", Toast.LENGTH_SHORT).show()
+            return
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Elegir fotos de…")
+            .setItems(arrayOf("Galería (fotos y álbumes)", "Explorador de archivos")) { _, which ->
+                if (which == 0) pickFromGallery(remaining) else pickFromFiles()
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun pickFromGallery(remaining: Int) {
+        try {
+            // Selector de fotos de Android: muestra recientes y álbumes, y permite elegir varias
+            val i = Intent(MediaStore.ACTION_PICK_IMAGES)
+            if (remaining > 1) {
+                val limit = if (Build.VERSION.SDK_INT >= 33) MediaStore.getPickImagesMaxLimit() else 100
+                i.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, min(remaining, limit))
+            }
+            startActivityForResult(i, REQ_PHOTO)
+        } catch (e: Exception) {
+            try {
+                // Celulares sin ese selector: se abre la app de galería
+                val i = Intent(Intent.ACTION_PICK)
+                i.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*")
+                i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+                startActivityForResult(i, REQ_PHOTO)
+            } catch (e2: Exception) {
+                pickFromFiles()
+            }
+        }
+    }
+
+    private fun pickFromFiles() {
         val pick = Intent(Intent.ACTION_OPEN_DOCUMENT)
         pick.addCategory(Intent.CATEGORY_OPENABLE)
         pick.type = "image/*"
@@ -617,11 +716,24 @@ class WidgetConfigActivity : Activity() {
         startActivityForResult(pick, REQ_PHOTO)
     }
 
-    private fun openCrop(photoId: Int) {
+    private fun openCrop(photoId: Int, index: Int, total: Int) {
         val i = Intent(this, CropActivity::class.java)
         i.putExtra(CropActivity.EXTRA_WIDGET_ID, widgetId)
         i.putExtra(CropActivity.EXTRA_PHOTO_ID, photoId)
+        i.putExtra(CropActivity.EXTRA_INDEX, index)
+        i.putExtra(CropActivity.EXTRA_TOTAL, total)
         startActivityForResult(i, REQ_CROP)
+    }
+
+    /** Abre el recorte de la siguiente foto pendiente, o vuelve a la pantalla si ya no quedan. */
+    private fun nextCrop() {
+        if (cropQueue.isEmpty()) {
+            rebuildPage()
+            return
+        }
+        val id = cropQueue.removeAt(0)
+        cropDone++
+        openCrop(id, cropDone, cropTotal)
     }
 
     // ------------------------------------------------------------ página: texto
@@ -770,6 +882,11 @@ class WidgetConfigActivity : Activity() {
                 12f, topDp = 6, muted = true
             )
         )
+        content.addView(label("Título del widget", 13f, topDp = 16, muted = true))
+        content.addView(toggle("Mostrar el título «Enviar archivos»", style.showTitle) {
+            style.showTitle = it
+            refreshPreview()
+        })
     }
 
     // ------------------------------------------------------------ vista previa
@@ -788,60 +905,15 @@ class WidgetConfigActivity : Activity() {
             pw = ph * wDp / hDp
         }
         pw = min(pw, 1100)
-        val day = WidgetStore.today()
         img.setImageBitmap(
-            WidgetRenderer.render(this, style, widgetId, pw, ph, WidgetStore.phraseFor(this, day), day)
+            WidgetRenderer.render(this, style, widgetId, pw, ph, WidgetStore.phraseFor(this, WidgetStore.today()))
         )
     }
 
     // ------------------------------------------------------------ selector de color propio
 
     private fun openColorDialog(initial: Int, onPick: (Int) -> Unit) {
-        val hsv = FloatArray(3)
-        Color.colorToHSV(initial, hsv)
-
-        val box = LinearLayout(this)
-        box.orientation = LinearLayout.VERTICAL
-        box.setPadding(dp(24), dp(16), dp(24), dp(8))
-
-        val sample = View(this)
-        sample.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(56))
-        box.addView(sample)
-
-        fun current(): Int = Color.HSVToColor(floatArrayOf(hsv[0], hsv[1], hsv[2]))
-        fun update() {
-            sample.background = round(current(), 14, Color.argb(60, 0, 0, 0), 1)
-        }
-
-        fun addSlider(title: String, top: Int, start: Int, onChange: (Int) -> Unit) {
-            box.addView(label(title, 13f, topDp = 10))
-            val s = SeekBar(this)
-            s.max = top
-            s.progress = start
-            s.progressTintList = ColorStateList.valueOf(accent)
-            s.thumbTintList = ColorStateList.valueOf(accent)
-            s.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) {
-                    onChange(p)
-                    update()
-                }
-                override fun onStartTrackingTouch(sb: SeekBar?) {}
-                override fun onStopTrackingTouch(sb: SeekBar?) {}
-            })
-            box.addView(s)
-        }
-
-        update()
-        addSlider("Tono", 360, hsv[0].toInt()) { hsv[0] = it.toFloat() }
-        addSlider("Suavidad (pastel ← → intenso)", 100, (hsv[1] * 100).toInt()) { hsv[1] = it / 100f }
-        addSlider("Brillo", 100, (hsv[2] * 100).toInt()) { hsv[2] = it / 100f }
-
-        AlertDialog.Builder(this)
-            .setTitle("Crea tu color")
-            .setView(box)
-            .setPositiveButton("Usar este color") { _, _ -> onPick(current()) }
-            .setNegativeButton("Cancelar", null)
-            .show()
+        showColorPickerDialog(this, initial, accent, ink, soft, onPick)
     }
 
     // ------------------------------------------------------------ resultados y guardado
@@ -853,7 +925,12 @@ class WidgetConfigActivity : Activity() {
         if (requestCode == REQ_CROP) {
             // el recorte o la eliminación ya quedaron guardados: se vuelven a leer las fotos
             style.photos = WidgetStore.loadPhotos(this, widgetId)
-            rebuildPage()
+            if (resultCode == RESULT_CANCELED) {
+                cropQueue.clear() // «Atrás»: el resto de fotos se recorta después, tocándolas
+                rebuildPage()
+            } else {
+                nextCrop()
+            }
             return
         }
         if (resultCode != RESULT_OK || data == null) return
@@ -882,8 +959,12 @@ class WidgetConfigActivity : Activity() {
                     Toast.LENGTH_LONG
                 ).show()
             }
-            // si se agregó una sola foto, se abre directo el recorte
-            if (added.size == 1) openCrop(added[0].id) else rebuildPage()
+            // se abre el recorte de cada foto nueva, una tras otra
+            cropQueue.clear()
+            added.forEach { cropQueue.add(it.id) }
+            cropTotal = added.size
+            cropDone = 0
+            nextCrop()
         } else if (requestCode == REQ_FONT) {
             val uri = data.data ?: return
             val name = FontStore.saveUser(this, uri)
@@ -900,6 +981,7 @@ class WidgetConfigActivity : Activity() {
     private fun saveAndExit() {
         WidgetStore.save(this, widgetId, style)
         SendWidgetProvider.updateWidget(this, AppWidgetManager.getInstance(this), widgetId)
+        WidgetScheduler.sync(this)
         setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
         finish()
     }

@@ -58,6 +58,10 @@ val BAR_COLORS = intArrayOf(
     0xFFB5EAD7.toInt()  // menta
 )
 
+/** Cada cuánto cambian los colores o las fotos (en minutos). 1440 = una vez al día. */
+val CHANGE_VALUES = listOf(1440, 360, 60, 30, 15)
+val CHANGE_LABELS = listOf("1 día", "6 horas", "1 hora", "30 min", "15 min")
+
 val EMOJIS = listOf("⚙️", "🎨", "✨", "🌸", "💜", "🛠️", "⭐", "🌈")
 
 /** Una foto del widget y su recorte, en proporciones de la foto original (0 a 1). */
@@ -81,7 +85,8 @@ data class WidgetStyle(
     var showPhrase: Boolean = true,
     var fitMode: Int = FIT_FILL,
     var barColor: Int = Color.BLACK,
-    var photoRandom: Boolean = false,           // false = en orden, true = aleatoria cada día
+    var photoRandom: Boolean = false,           // false = en orden, true = aleatoria
+    var changeMinutes: Int = 1440,              // cada cuánto cambian colores y fotos
     var photos: List<PhotoItem> = emptyList()
 ) {
     val hasPhoto: Boolean get() = photos.isNotEmpty()
@@ -91,7 +96,7 @@ object WidgetStore {
     private const val PREFS = "send_widget_prefs_v3"
     private val KEYS = listOf(
         "mode", "c1", "c2", "daily", "dauto", "dcolors", "tmode", "tcolor", "outline", "font", "fname",
-        "dim", "emoji", "title", "phrase", "fit", "bar", "prandom", "photos", "pseq", "fx", "fy", "zoom"
+        "dim", "emoji", "title", "phrase", "fit", "bar", "prandom", "photos", "pseq", "every", "fx", "fy", "zoom"
     )
 
     private fun prefs(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -123,6 +128,7 @@ object WidgetStore {
             fitMode = p.getInt("${id}_fit", d.fitMode),
             barColor = p.getInt("${id}_bar", d.barColor),
             photoRandom = p.getBoolean("${id}_prandom", d.photoRandom),
+            changeMinutes = p.getInt("${id}_every", d.changeMinutes),
             photos = parsePhotos(p.getString("${id}_photos", "") ?: "")
         )
     }
@@ -147,6 +153,7 @@ object WidgetStore {
             .putInt("${id}_fit", s.fitMode)
             .putInt("${id}_bar", s.barColor)
             .putBoolean("${id}_prandom", s.photoRandom)
+            .putInt("${id}_every", s.changeMinutes)
             .putString("${id}_photos", photosToString(s.photos))
             .apply()
     }
@@ -222,16 +229,27 @@ object WidgetStore {
         savePhotos(ctx, id, list)
     }
 
-    /** Qué foto toca mostrar hoy: en orden o aleatoria (pero siempre la misma durante todo el día). */
-    fun photoFor(cfg: WidgetStyle, widgetId: Int, day: Int): PhotoItem? {
+    /**
+     * "Turno" actual: cambia una vez al día o cada tantos minutos, según lo elegido.
+     * De él salen el color y la foto que toca mostrar.
+     */
+    fun slotFor(cfg: WidgetStyle): Long {
+        if (cfg.changeMinutes >= 1440) {
+            val c = Calendar.getInstance()
+            return c.get(Calendar.YEAR) * 1000L + c.get(Calendar.DAY_OF_YEAR)
+        }
+        return System.currentTimeMillis() / 60000L / cfg.changeMinutes.coerceAtLeast(1)
+    }
+
+    /** Qué foto toca mostrar en este turno: en orden o aleatoria (pero siempre la misma durante todo el turno). */
+    fun photoFor(cfg: WidgetStyle, widgetId: Int, slot: Long): PhotoItem? {
         val list = cfg.photos
         if (list.isEmpty()) return null
         if (list.size == 1) return list[0]
         val idx = if (cfg.photoRandom) {
-            val year = Calendar.getInstance().get(Calendar.YEAR)
-            Random((year * 1000L + day) * 31L + widgetId).nextInt(list.size)
+            Random(slot * 31L + widgetId).nextInt(list.size)
         } else {
-            (day - 1).coerceAtLeast(0) % list.size
+            (slot % list.size).toInt()
         }
         return list[idx]
     }

@@ -240,6 +240,8 @@ class CropActivity : Activity() {
     companion object {
         const val EXTRA_WIDGET_ID = "widget_id"
         const val EXTRA_PHOTO_ID = "photo_id"
+        const val EXTRA_INDEX = "index"   // posición de esta foto cuando se recortan varias seguidas
+        const val EXTRA_TOTAL = "total"   // cuántas fotos se están recortando seguidas
     }
 
     private var widgetId = AppWidgetManager.INVALID_APPWIDGET_ID
@@ -265,6 +267,8 @@ class CropActivity : Activity() {
 
         widgetId = intent.getIntExtra(EXTRA_WIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
         photoId = intent.getIntExtra(EXTRA_PHOTO_ID, -1)
+        val index = intent.getIntExtra(EXTRA_INDEX, 1)
+        val total = intent.getIntExtra(EXTRA_TOTAL, 1)
 
         val item = WidgetStore.loadPhotos(this, widgetId).firstOrNull { it.id == photoId }
         val file = WidgetStore.photoFile(this, widgetId, photoId)
@@ -283,14 +287,15 @@ class CropActivity : Activity() {
         }
 
         val title = TextView(this)
-        title.text = "Recorta tu foto"
+        title.text = if (total > 1) "Recorta tu foto ($index de $total)" else "Recorta tu foto"
         title.textSize = 22f
         title.setTextColor(Color.WHITE)
         title.setPadding(dp(20), dp(16), dp(20), dp(2))
         root.addView(title)
 
         val hint = TextView(this)
-        hint.text = "Arrastra las esquinas o los lados para elegir qué parte se verá. Arrastra dentro del recuadro para moverlo."
+        hint.text = "Arrastra las esquinas o los lados para elegir qué parte se verá. Arrastra dentro del recuadro para moverlo." +
+            (if (total > 1) " «Omitir» deja esta foto completa; con «Atrás» dejas el resto para después." else "")
         hint.textSize = 13f
         hint.setTextColor(Color.parseColor("#B9B3CC"))
         hint.setPadding(dp(20), 0, dp(20), dp(8))
@@ -360,8 +365,16 @@ class CropActivity : Activity() {
             return b
         }
         bar.addView(button("Eliminar", Color.parseColor("#7A3B4A")) { confirmDelete() })
-        bar.addView(button("Cancelar", chipBg) { finish() })
-        bar.addView(button("Listo", accent) { saveAndExit() })
+        if (total > 1) {
+            // varias fotos seguidas: omitir pasa a la siguiente (Atrás las deja todas para después)
+            bar.addView(button("Omitir", chipBg) {
+                setResult(RESULT_FIRST_USER)
+                finish()
+            })
+        } else {
+            bar.addView(button("Cancelar", chipBg) { finish() })
+        }
+        bar.addView(button(if (index < total) "Siguiente" else "Listo", accent) { saveAndExit() })
         root.addView(bar)
 
         setContentView(root)

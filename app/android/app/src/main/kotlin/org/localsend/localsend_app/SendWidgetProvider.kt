@@ -3,6 +3,7 @@ package org.localsend.localsend_app
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
@@ -14,6 +15,23 @@ class SendWidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, manager: AppWidgetManager, appWidgetIds: IntArray) {
         for (id in appWidgetIds) updateWidget(context, manager, id)
+        WidgetScheduler.sync(context)
+    }
+
+    override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action == WidgetScheduler.ACTION_TICK) {
+            // Llegó el momento de cambiar el color o la foto
+            val manager = AppWidgetManager.getInstance(context)
+            val ids = manager.getAppWidgetIds(ComponentName(context, SendWidgetProvider::class.java))
+            for (id in ids) updateWidget(context, manager, id)
+            return
+        }
+        super.onReceive(context, intent)
+    }
+
+    override fun onDisabled(context: Context) {
+        WidgetScheduler.cancel(context)
+        super.onDisabled(context)
     }
 
     override fun onAppWidgetOptionsChanged(
@@ -25,6 +43,7 @@ class SendWidgetProvider : AppWidgetProvider() {
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
         for (id in appWidgetIds) WidgetStore.delete(context, id)
+        WidgetScheduler.sync(context)
     }
 
     companion object {
@@ -61,7 +80,7 @@ class SendWidgetProvider : AppWidgetProvider() {
             val day = WidgetStore.today()
             val (w, h) = sizeFor(ctx, manager, id)
 
-            val art = WidgetRenderer.render(ctx, style, id, w, h, WidgetStore.phraseFor(ctx, day), day)
+            val art = WidgetRenderer.render(ctx, style, id, w, h, WidgetStore.phraseFor(ctx, day))
             WidgetRenderer.clearCache()
 
             val views = RemoteViews(ctx.packageName, R.layout.send_widget)

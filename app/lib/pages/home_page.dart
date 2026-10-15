@@ -17,6 +17,7 @@ import 'dart:async';
 import 'package:localsend_app/util/native/channel/android_channel.dart';
 import 'package:localsend_app/util/native/platform_check.dart';
 import 'package:localsend_app/widget/dialogs/add_file_dialog.dart';
+import 'package:localsend_app/widget/dialogs/widget_start_sheet.dart';
 
 enum HomeTab {
   receive(Icons.wifi),
@@ -87,17 +88,23 @@ class _HomePageState extends State<HomePage> with Refena, WidgetsBindingObserver
     }
   }
 
-  Future<void> _openSendMenuIfLaunchedFromWidget() async {
-    if (!checkPlatform([TargetPlatform.android])) {
-      return;
+    Future<void> _openSendMenuIfLaunchedFromWidget() async {
+      if (!checkPlatform([TargetPlatform.android])) {
+        return;
+      }
+      final shouldOpen = await consumeOpenSendMenuAndroid();
+      if (!shouldOpen || !mounted) {
+        return;
+      }
+      final choice = await WidgetStartSheet.open(context);
+      if (!mounted || choice == null) {
+        return;
+      }
+      ref.redux(homePageControllerProvider).dispatch(ChangeTabAction(choice));
+      if (choice == HomeTab.send) {
+        await AddFileDialog.open(context: context, options: pickerOptions);
+      }
     }
-    final shouldOpen = await consumeOpenSendMenuAndroid();
-    if (!shouldOpen || !mounted) {
-      return;
-    }
-    ref.redux(homePageControllerProvider).dispatch(ChangeTabAction(HomeTab.send));
-    await AddFileDialog.open(context: context, options: pickerOptions);
-  }
 
   @override
   Widget build(BuildContext context) {
